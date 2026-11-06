@@ -1,0 +1,36 @@
+{
+  "entity": {
+    "number": {
+      "volume": {
+        "default": "mdi:volume-high"
+      }
+    },
+    "text": {
+      "message": {
+        "default": "mdi:message-text"
+      }
+    },
+    "button": {
+      "speak": {
+        "default": "mdi:play"
+      },
+      "stop": {
+        "default": "mdi:stop"
+      },
+      "select_all": {
+        "default": "mdi:checkbox-multiple-marked"
+      },
+      "select_none": {
+        "default": "mdi:checkbox-multiple-blank"
+      }
+    }
+  },
+  "services": {
+    "speak": {
+      "service": "mdi:bullhorn"
+    },
+    "stop": {
+      "service": "mdi:stop"
+    }
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "TTS Broadcast is already configured."
+    },
+    "error": {
+      "tts_entity_not_found": "The selected TTS entity was not found.",
+      "no_speakers": "Select at least one speaker.",
+      "invalid_subset": "Speakers without volume control must be a subset of the selected speakers."
+    },
+    "step": {
+      "user": {
+        "title": "TTS Broadcast",
+        "description": "Configure the TTS engine and speakers.",
+        "data": {
+          "tts_entity": "TTS entity",
+          "speakers": "Speakers",
+          "no_volume_speakers": "Speakers without volume control",
+          "volume": "Default volume",
+          "language": "Language",
+          "options": "Options"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "TTS Broadcast",
+        "description": "Edit the TTS Broadcast configuration.",
+        "data": {
+          "tts_entity": "TTS entity",
+          "speakers": "Speakers",
+          "no_volume_speakers": "Speakers without volume control",
+          "volume": "Default volume",
+          "language": "Language",
+          "options": "Options"
+        }
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "speaker": {
+        "name": "Selected"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Volume"
+      }
+    },
+    "text": {
+      "message": {
+        "name": "Message"
+      }
+    },
+    "button": {
+      "speak": {
+        "name": "Speak"
+      },
+      "stop": {
+        "name": "Stop"
+      },
+      "select_all": {
+        "name": "Select all"
+      },
+      "select_none": {
+        "name": "Select none"
+      }
+    }
+  },
+  "services": {
+    "speak": {
+      "name": "Speak",
+      "description": "Speak a message to the selected speakers.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "The text to announce."
+        },
+        "speakers": {
+          "name": "Speakers",
+          "description": "Optional subset of configured speakers."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "Optional volume override."
+        },
+        "language": {
+          "name": "Language",
+          "description": "Optional language passed through to the TTS engine."
+        },
+        "options": {
+          "name": "Options",
+          "description": "Optional options passed through to the TTS engine."
+        }
+      }
+    },
+    "stop": {
+      "name": "Stop",
+      "description": "Stop playback on the selected speakers.",
+      "fields": {
+        "speakers": {
+          "name": "Speakers",
+          "description": "Optional subset of configured speakers."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_config_entry": {
+      "message": "TTS Broadcast is not configured."
+    },
+    "empty_message": {
+      "message": "The message must not be empty."
+    },
+    "no_speaker": {
+      "message": "No speaker resolved."
+    },
+    "no_tts_entity": {
+      "message": "No TTS entity configured."
+    },
+    "speaker_not_configured": {
+      "message": "Speaker {speaker} is not configured."
+    }
+  }
+}

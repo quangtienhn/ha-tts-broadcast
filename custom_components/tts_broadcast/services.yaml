@@ -1,0 +1,54 @@
+speak:
+  name: Speak
+  description: Speak a message to the selected speakers.
+  fields:
+    message:
+      name: Message
+      description: The text to announce.
+      required: true
+      example: "Hello everyone"
+      selector:
+        text:
+    speakers:
+      name: Speakers
+      description: Optional subset of configured speakers. Defaults to the currently selected switches.
+      required: false
+      selector:
+        entity:
+          domain: media_player
+          multiple: true
+    volume:
+      name: Volume
+      description: Optional volume override from 0 to 100 percent.
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+          mode: slider
+          unit_of_measurement: "%"
+    language:
+      name: Language
+      description: Optional language passed through to the TTS engine.
+      required: false
+      selector:
+        text:
+    options:
+      name: Options
+      description: Optional options passed through to the TTS engine.
+      required: false
+      selector:
+        object:
+stop:
+  name: Stop
+  description: Stop playback on the selected speakers.
+  fields:
+    speakers:
+      name: Speakers
+      description: Optional subset of configured speakers. Defaults to the currently selected switches.
+      required: false
+      selector:
+        entity:
+          domain: media_player
+          multiple: true

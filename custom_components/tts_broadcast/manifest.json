@@ -1,0 +1,12 @@
+{
+  "domain": "tts_broadcast",
+  "name": "TTS Broadcast",
+  "codeowners": ["@quangtienhn"],
+  "config_flow": true,
+  "documentation": "https://github.com/quangtienhn/ha-tts-broadcast",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/quangtienhn/ha-tts-broadcast/issues",
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

@@ -1,0 +1,123 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "TTS Broadcast đã được cấu hình."
+    },
+    "error": {
+      "tts_entity_not_found": "Không tìm thấy TTS entity đã chọn.",
+      "no_speakers": "Chọn ít nhất một loa.",
+      "invalid_subset": "Loa không có điều khiển âm lượng phải là tập con của các loa đã chọn."
+    },
+    "step": {
+      "user": {
+        "title": "TTS Broadcast",
+        "description": "Cấu hình engine TTS và các loa.",
+        "data": {
+          "tts_entity": "TTS entity",
+          "speakers": "Loa",
+          "no_volume_speakers": "Loa không có điều khiển âm lượng",
+          "volume": "Âm lượng mặc định",
+          "language": "Ngôn ngữ",
+          "options": "Tùy chọn"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "TTS Broadcast",
+        "description": "Chỉnh sửa cấu hình TTS Broadcast.",
+        "data": {
+          "tts_entity": "TTS entity",
+          "speakers": "Loa",
+          "no_volume_speakers": "Loa không có điều khiển âm lượng",
+          "volume": "Âm lượng mặc định",
+          "language": "Ngôn ngữ",
+          "options": "Tùy chọn"
+        }
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "volume": {
+        "name": "Âm lượng"
+      }
+    },
+    "text": {
+      "message": {
+        "name": "Tin nhắn"
+      }
+    },
+    "button": {
+      "speak": {
+        "name": "Phát"
+      },
+      "stop": {
+        "name": "Dừng"
+      },
+      "select_all": {
+        "name": "Chọn tất cả"
+      },
+      "select_none": {
+        "name": "Bỏ chọn tất cả"
+      }
+    }
+  },
+  "services": {
+    "speak": {
+      "name": "Phát",
+      "description": "Phát một tin nhắn đến các loa đã chọn.",
+      "fields": {
+        "message": {
+          "name": "Tin nhắn",
+          "description": "Văn bản cần thông báo."
+        },
+        "speakers": {
+          "name": "Loa",
+          "description": "Tập con loa đã cấu hình, tùy chọn."
+        },
+        "volume": {
+          "name": "Âm lượng",
+          "description": "Ghi đè âm lượng tùy chọn."
+        },
+        "language": {
+          "name": "Ngôn ngữ",
+          "description": "Ngôn ngữ truyền cho TTS."
+        },
+        "options": {
+          "name": "Tùy chọn",
+          "description": "Tùy chọn truyền cho TTS."
+        }
+      }
+    },
+    "stop": {
+      "name": "Dừng",
+      "description": "Dừng phát trên các loa đã chọn.",
+      "fields": {
+        "speakers": {
+          "name": "Loa",
+          "description": "Tập con loa đã cấu hình, tùy chọn."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_config_entry": {
+      "message": "TTS Broadcast chưa được cấu hình."
+    },
+    "empty_message": {
+      "message": "Tin nhắn không được để trống."
+    },
+    "no_speaker": {
+      "message": "Không có loa nào được chọn."
+    },
+    "no_tts_entity": {
+      "message": "Chưa cấu hình TTS entity."
+    },
+    "speaker_not_configured": {
+      "message": "Loa {speaker} chưa được cấu hình."
+    }
+  }
+}
