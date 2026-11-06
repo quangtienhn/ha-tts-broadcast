@@ -1,2 +1,5 @@
 pytest-homeassistant-custom-component==0.13.375
+hassil==3.12.1
+gazetteer-matcher==1.2.0
+home-assistant-intents==2026.10.27
 ruff==0.8.0
