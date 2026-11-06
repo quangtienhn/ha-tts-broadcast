@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 from custom_components.tts_broadcast.phrase_matching import match_phrase
 
 
@@ -16,9 +18,21 @@ def test_strip_punctuation_connectors() -> None:
     assert r.message == "cơm chín"
 
 
+def test_strip_accent_insensitive_no_accent() -> None:
+    r = match_phrase("thong bao com chin roi", ["thông báo"], [], True, True)
+    assert r.action == "speak"
+    assert r.message == "com chin roi"
+
+
 def test_keep() -> None:
     r = match_phrase("xin chào mọi người", [], ["xin chào"], True, True)
     assert r.message == "xin chào mọi người"
+
+
+def test_keep_full_sentence() -> None:
+    r = match_phrase("xin chào mọi người xuống ăn cơm", [], ["xin chào"], True, True)
+    assert r.action == "speak"
+    assert r.message == "xin chào mọi người xuống ăn cơm"
 
 
 def test_longest() -> None:
@@ -50,7 +64,18 @@ def test_no_match_not_require() -> None:
     assert r.message == "hello"
 
 
-def test_phrase_in_both_rejected_in_flow() -> None:
-    # validated in config flow; matching just uses first list order
-    r = match_phrase("thông báo hi", ["thông báo"], ["thông báo"], True, True)
-    assert r.message == "hi"
+def test_unmatched_sentence_delegates() -> None:
+    r = match_phrase("mọi người ơi xuống ăn cơm", ["thông báo"], [], True, True)
+    assert r.action == "delegate"
+
+
+def test_nfd_strip() -> None:
+    nfd = unicodedata.normalize("NFD", "thông báo")
+    r = match_phrase(nfd, ["thông báo"], [], True, True)
+    assert r.action == "reply"
+    assert not r.message
+
+
+def test_no_accent_no_match() -> None:
+    r = match_phrase("thong bao x", ["thông báo"], [], False, True)
+    assert r.action == "delegate"
