@@ -139,9 +139,11 @@ def _validate_voice_section(
         accent = True
     if _norm_phrase_set(strip, accent) & _norm_phrase_set(keep, accent):
         errors[CONF_STRIP_PHRASES] = "phrase_in_both"
-    require = user_input.get(CONF_REQUIRE_PHRASE)
-    if require is None:
-        require = current.get(CONF_REQUIRE_PHRASE, True)
+    require = (
+        user_input[CONF_REQUIRE_PHRASE]
+        if CONF_REQUIRE_PHRASE in user_input
+        else current.get(CONF_REQUIRE_PHRASE, True)
+    )
     if require and not strip and not keep:
         errors[CONF_STRIP_PHRASES] = "no_phrases"
     return errors
