@@ -297,29 +297,25 @@ async def _resolve_speakers(
     return resolved, skipped
 
 
-async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
-    entry = _get_entry(hass)
-    if entry is None:
-        raise ServiceValidationError(
-            translation_domain=DOMAIN,
-            translation_key="no_config_entry",
-        )
-
+async def async_announce(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    message: str,
+    speakers: list[str] | None = None,
+    volume: float | None = None,
+    language: str | None = None,
+    options: Any = None,
+) -> dict[str, Any]:
     config = _config(entry)
-    message = (call.data.get(ATTR_MESSAGE) or "").strip()
+    message = message.strip()
     if not message:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="empty_message",
         )
 
-    requested = call.data.get(ATTR_SPEAKERS)
-    requested_list = _coerce_speakers(requested) if requested is not None else None
-
-    async with entry.runtime_data.lock:  # type: ignore[attr-defined]
-        resolved, skipped_unavailable = await _resolve_speakers(
-            hass, entry, requested_list
-        )
+    async with entry.runtime_data.lock:
+        resolved, skipped_unavailable = await _resolve_speakers(hass, entry, speakers)
         if not resolved:
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
@@ -327,11 +323,8 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
             )
 
         no_volume = set(_coerce_speakers(config.get(CONF_NO_VOLUME_SPEAKERS)))
-        volume_override = call.data.get(ATTR_VOLUME)
-        if volume_override is None:
+        if volume is None:
             volume = config.get(CONF_VOLUME, DEFAULT_VOLUME)
-        else:
-            volume = volume_override
         try:
             volume_float = float(volume)
         except (TypeError, ValueError):
@@ -360,10 +353,8 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
                 failed_volume.append(speaker)
                 _LOGGER.warning("Failed to set volume on %s: %s", speaker, err)
 
-        language = call.data.get(ATTR_LANGUAGE)
         if language is None:
             language = config.get(CONF_LANGUAGE_KEY)
-        options = call.data.get(ATTR_OPTIONS)
         if options is None:
             options = config.get(CONF_OPTIONS_KEY)
 
@@ -398,6 +389,32 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
             ATTR_SKIPPED: skipped_unavailable,
             ATTR_FAILED: failed,
         }
+
+
+async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    entry = _get_entry(hass)
+    if entry is None:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="no_config_entry",
+        )
+    message = (call.data.get(ATTR_MESSAGE) or "").strip()
+    if not message:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="empty_message",
+        )
+    requested = call.data.get(ATTR_SPEAKERS)
+    requested_list = _coerce_speakers(requested) if requested is not None else None
+    return await async_announce(
+        hass,
+        entry,
+        message,
+        speakers=requested_list,
+        volume=call.data.get(ATTR_VOLUME),
+        language=call.data.get(ATTR_LANGUAGE),
+        options=call.data.get(ATTR_OPTIONS),
+    )
 
 
 async def _async_stop(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:

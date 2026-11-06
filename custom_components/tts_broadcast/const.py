@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 DOMAIN = "tts_broadcast"
-PLATFORMS = ["switch", "number", "text", "button"]
+PLATFORMS = ["switch", "number", "text", "button", "conversation"]
 
 CONF_TTS_ENTITY = "tts_entity"
 CONF_SPEAKERS = "speakers"
@@ -14,7 +14,17 @@ CONF_OPTIONS = "options"
 
 DEFAULT_VOLUME = 50
 DEFAULT_TITLE = "TTS Broadcast"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+
+CONF_STRIP_PHRASES = "strip_phrases"
+CONF_KEEP_PHRASES = "keep_phrases"
+CONF_REQUIRE_PHRASE = "require_phrase"
+CONF_FALLBACK_AGENT = "fallback_agent"
+CONF_ACCENT_INSENSITIVE = "accent_insensitive"
+CONF_REPLY_TEXT = "reply_text"
+
+DEFAULT_STRIP_PHRASES = ["thông báo"]
+DEFAULT_KEEP_PHRASES: list[str] = []
 
 SERVICE_SPEAK = "speak"
 SERVICE_STOP = "stop"

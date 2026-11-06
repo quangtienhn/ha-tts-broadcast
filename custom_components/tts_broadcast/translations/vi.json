@@ -6,7 +6,9 @@
     "error": {
       "tts_entity_not_found": "Không tìm thấy TTS entity đã chọn.",
       "no_speakers": "Chọn ít nhất một loa.",
-      "invalid_subset": "Loa không có điều khiển âm lượng phải là tập con của các loa đã chọn."
+      "invalid_subset": "Loa không có điều khiển âm lượng phải là tập con của các loa đã chọn.",
+      "phrase_in_both": "Một cụm từ không thể ở cả hai danh sách.",
+      "no_phrases": "Cần ít nhất một cụm từ trừ khi tắt bắt buộc cụm từ."
     },
     "step": {
       "user": {
@@ -28,6 +30,13 @@
       "init": {
         "title": "TTS Broadcast",
         "description": "Chỉnh sửa cấu hình TTS Broadcast.",
+        "menu_options": {
+          "speakers": "Loa & TTS",
+          "voice": "Cụm từ thoại"
+        }
+      },
+      "speakers": {
+        "title": "Loa & TTS",
         "data": {
           "tts_entity": "TTS entity",
           "speakers": "Loa",
@@ -35,6 +44,17 @@
           "volume": "Âm lượng mặc định",
           "language": "Ngôn ngữ",
           "options": "Tùy chọn"
+        }
+      },
+      "voice": {
+        "title": "Cụm từ thoại",
+        "data": {
+          "strip_phrases": "Cụm từ bỏ đi",
+          "keep_phrases": "Cụm từ giữ nguyên",
+          "require_phrase": "Bắt buộc cụm từ",
+          "fallback_agent": "Agent dự phòng",
+          "accent_insensitive": "Không phân biệt dấu",
+          "reply_text": "Văn bản trả lời"
         }
       }
     }

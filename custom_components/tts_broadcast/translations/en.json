@@ -6,7 +6,9 @@
     "error": {
       "tts_entity_not_found": "The selected TTS entity was not found.",
       "no_speakers": "Select at least one speaker.",
-      "invalid_subset": "Speakers without volume control must be a subset of the selected speakers."
+      "invalid_subset": "Speakers without volume control must be a subset of the selected speakers.",
+      "phrase_in_both": "A phrase may not appear in both lists.",
+      "no_phrases": "At least one phrase is required unless require phrase is disabled."
     },
     "step": {
       "user": {
@@ -28,6 +30,13 @@
       "init": {
         "title": "TTS Broadcast",
         "description": "Edit the TTS Broadcast configuration.",
+        "menu_options": {
+          "speakers": "Speakers & TTS",
+          "voice": "Voice phrases"
+        }
+      },
+      "speakers": {
+        "title": "Speakers & TTS",
         "data": {
           "tts_entity": "TTS entity",
           "speakers": "Speakers",
@@ -35,6 +44,17 @@
           "volume": "Default volume",
           "language": "Language",
           "options": "Options"
+        }
+      },
+      "voice": {
+        "title": "Voice phrases",
+        "data": {
+          "strip_phrases": "Strip phrases",
+          "keep_phrases": "Keep phrases",
+          "require_phrase": "Require phrase",
+          "fallback_agent": "Fallback agent",
+          "accent_insensitive": "Accent insensitive",
+          "reply_text": "Reply text"
         }
       }
     }

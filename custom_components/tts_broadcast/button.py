@@ -55,7 +55,12 @@ class TTSBroadcastSpeakButton(_BaseButton):
             if state is not None:
                 message = state.state or ""
         if not message.strip():
-            return
+            from homeassistant.exceptions import ServiceValidationError
+
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="empty_message",
+            )
         await self.hass.services.async_call(
             DOMAIN,
             SERVICE_SPEAK,
