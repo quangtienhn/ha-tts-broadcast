@@ -47,6 +47,21 @@ service: tts_broadcast.stop
 ## Blueprint
 Import `blueprints/automation/tts_broadcast/voice_announce.yaml` manually in Home Assistant. Configure trigger sentences such as `thông báo {message}`.
 
+## Create the Assist pipeline
+To speak through Assist, create a voice assistant pipeline that uses the TTS Broadcast conversation agent:
+1. Settings -> Voice assistants -> Add assistant.
+2. Choose conversation agent: `TTS Broadcast`.
+3. Pick your speech-to-text engine (STT) and text-to-speech engine (TTS).
+4. Save the pipeline and note its id.
+5. In the dashboard card (or mobile app), set `assist_pipeline_id` to that pipeline id (defaults to `preferred`).
+
+The Assist row in the generated dashboard YAML uses `pipeline_id: preferred` and a localized name (`Assist` / `Trợ giúp`).
+
+### "No microphone button" troubleshooting
+- The pipeline needs a speech-to-text engine; without one there is no microphone button.
+- The browser page must be HTTPS (or use the Home Assistant Companion app) for microphone access.
+- The conversation entity's own chat dialog (opened from the entity page) is text-only by design.
+
 ## Dashboard snippet
 ```yaml
 type: entities

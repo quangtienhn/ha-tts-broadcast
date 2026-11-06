@@ -64,9 +64,12 @@
           "tts_entity": "TTS entity",
           "speakers": "Loa",
           "no_volume_speakers": "Loa không có điều khiển âm lượng",
-          "volume": "Âm lượng mặc định",
+          "volume": "Âm lượng ban đầu",
           "language": "Ngôn ngữ",
           "options": "Tùy chọn"
+        },
+        "data_description": {
+          "volume": "Âm lượng khởi đầu trước khi thanh trượt có trạng thái đã lưu."
         }
       },
       "voice": {

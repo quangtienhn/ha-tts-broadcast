@@ -64,9 +64,12 @@
           "tts_entity": "TTS entity",
           "speakers": "Speakers",
           "no_volume_speakers": "Speakers without volume control",
-          "volume": "Default volume",
+          "volume": "Initial volume",
           "language": "Language",
           "options": "Options"
+        },
+        "data_description": {
+          "volume": "Starting volume before the slider has a stored state."
         }
       },
       "voice": {

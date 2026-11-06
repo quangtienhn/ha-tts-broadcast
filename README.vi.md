@@ -25,6 +25,21 @@ Xem README.md.
 ## Blueprint
 Import file `blueprints/automation/tts_broadcast/voice_announce.yaml` thủ công.
 
+## Tạo pipeline Assist
+Để phát thanh qua Assist, hãy tạo pipeline trợ giúp giọng nói sử dụng conversation agent TTS Broadcast:
+1. Settings -> Voice assistants -> Add assistant.
+2. Chọn conversation agent: `TTS Broadcast`.
+3. Chọn engine STT (giọng nói thành văn bản) và TTS (văn bản thành giọng nói).
+4. Lưu pipeline và ghi lại id của nó.
+5. Trong card dashboard (hoặc ứng dụng di động), đặt `assist_pipeline_id` thành id pipeline đó (mặc định là `preferred`).
+
+Hàng Assist trong YAML card được tạo ra dùng `pipeline_id: preferred` và tên đã bản địa hóa (`Assist` / `Trợ giúp`).
+
+### Khắc phục "Nút micro không hiện"
+- Pipeline cần một engine STT; nếu không có thì không có nút micro.
+- Trang trình duyệt phải là HTTPS (hoặc dùng ứng dụng Companion Home Assistant) để truy cập micro.
+- Hộp thoại chat riêng của conversation entity (mở từ trang entity) chỉ là văn bản theo thiết kế.
+
 ## Dashboard
 Xem snippet trong README.md.
 
