@@ -3,11 +3,15 @@ const VERSION = "1.1.2";
 const STRINGS = {
   en: {
     empty: "TTS Broadcast not configured",
-    assist: "Assist",
+    assist: "TALK",
+    assist_name: "TALK",
+    assist_icon: "mdi:microphone",
   },
   vi: {
     empty: "Chưa cấu hình TTS Broadcast",
-    assist: "Trợ lý",
+    assist: "NÓI",
+    assist_name: "NÓI",
+    assist_icon: "mdi:microphone",
   },
 };
 
@@ -119,9 +123,12 @@ class TTSBroadcastCard extends HTMLElement {
     rows.push({ type: "divider" });
     if (speak) rows.push(speak.entity_id);
     if (this._config.show_assist !== false) {
+      const assistName = this._config.assist_name || s.assist;
+      const assistIcon = this._config.assist_icon || "mdi:microphone";
       rows.push({
         type: "button",
-        name: s.assist,
+        name: assistName,
+        icon: assistIcon,
         tap_action: {
           action: "assist",
           pipeline_id: this._config.assist_pipeline_id || "preferred",
@@ -182,6 +189,8 @@ class TTSBroadcastCardEditor extends HTMLElement {
       { name: "show_message", selector: { boolean: {} } },
       { name: "show_assist", selector: { boolean: {} } },
       { name: "assist_pipeline_id", selector: { assist_pipeline: {} } },
+      { name: "assist_name", selector: { text: {} } },
+      { name: "assist_icon", selector: { text: {} } },
       { name: "show_select_buttons", selector: { boolean: {} } },
     ];
     const root = this.shadowRoot;

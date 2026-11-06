@@ -53,7 +53,10 @@
 ## Observability (v1.1.2)
 - One info log per announcement with resolved/skipped/failed entity ids only (never message text); warning per failed speaker with exception type+message; debug timing. Last result stored in runtime data and returned by diagnostics.
 
-## Optional: per-speaker level offsets (not implemented)
+## Card Assist row (v1.1.2)
+- The Assist row in the dashboard card uses icon `mdi:microphone` and a localized label: `TALK` (en) / `NÓI` (vi).
+- Card editor exposes optional `assist_name` and `assist_icon` text fields to override the label/icon.
+- `_build_dashboard_card_yaml` renders `name:` and `icon:` for the Assist button, reading `assist_name`/`assist_icon` from entry options when present, otherwise falling back to localized defaults.
 - Idea: options step "Speaker levels" with one NumberSelector per configured speaker (-50..+50 percentage points, default 0, skip no_volume speakers); effective volume = clamp(shared + offset, 0, 100).
 - Trade-offs: dynamic options schema complicates validation and translation parity; offsets add state that must survive reload and be stored per speaker; marginal benefit for most setups.
 - Decision: not implemented in v1.1.2. Recorded here so a future PR can implement it cleanly with tests for clamping and speaker removal.

@@ -33,7 +33,9 @@ Import file `blueprints/automation/tts_broadcast/voice_announce.yaml` thủ côn
 4. Lưu pipeline và ghi lại id của nó.
 5. Trong card dashboard (hoặc ứng dụng di động), đặt `assist_pipeline_id` thành id pipeline đó (mặc định là `preferred`).
 
-Hàng Assist trong YAML card được tạo ra dùng `pipeline_id: preferred` và tên đã bản địa hóa (`Assist` / `Trợ giúp`).
+Hàng Assist trong YAML card được tạo ra dùng `pipeline_id: preferred` và tên đã bản địa hóa (`TALK` / `NÓI`) cùng icon `mdi:microphone`.
+
+Các tùy chọn editor card (tất cả tùy chọn): `title`, `show_volume`, `show_message`, `show_assist`, `assist_pipeline_id` (mặc định `preferred`), `assist_name` (mặc định `TALK`/`NÓI`), `assist_icon` (mặc định `mdi:microphone`), `show_select_buttons`.
 
 ### Khắc phục "Nút micro không hiện"
 - Pipeline cần một engine STT; nếu không có thì không có nút micro.

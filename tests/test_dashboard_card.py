@@ -24,3 +24,19 @@ async def test_get_dashboard_card(hass: HomeAssistant, mock_config_entry) -> Non
     assert "yaml" in result
     assert "switch.tts_broadcast" in result["yaml"]
     assert "type: button" in result["yaml"]
+
+
+async def test_dashboard_card_assist_has_name_and_icon(hass, mock_config_entry):
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    result = await hass.services.async_call(
+        DOMAIN, "get_dashboard_card", {}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+
+    yaml = result["yaml"]
+    assert "type: button" in yaml
+    assert "name: TALK" in yaml
+    assert "icon: mdi:microphone" in yaml

@@ -55,7 +55,9 @@ To speak through Assist, create a voice assistant pipeline that uses the TTS Bro
 4. Save the pipeline and note its id.
 5. In the dashboard card (or mobile app), set `assist_pipeline_id` to that pipeline id (defaults to `preferred`).
 
-The Assist row in the generated dashboard YAML uses `pipeline_id: preferred` and a localized name (`Assist` / `Trợ giúp`).
+The Assist row in the generated dashboard YAML uses `pipeline_id: preferred` and a localized name (`TALK` / `NÓI`) with icon `mdi:microphone`.
+
+Card editor options (all optional): `title`, `show_volume`, `show_message`, `show_assist`, `assist_pipeline_id` (default `preferred`), `assist_name` (default localized `TALK`/`NÓI`), `assist_icon` (default `mdi:microphone`), `show_select_buttons`.
 
 ### "No microphone button" troubleshooting
 - The pipeline needs a speech-to-text engine; without one there is no microphone button.

@@ -542,13 +542,21 @@ async def _async_get_dashboard_card(
     return {"yaml": yaml_text}
 
 
-_ASSIST_BUTTON_NAMES = {"en": "Assist", "vi": "Trợ giúp"}
+_ASSIST_BUTTON_NAMES = {"en": "TALK", "vi": "NÓI"}
+_ASSIST_BUTTON_ICON = "mdi:microphone"
 
 
 def _assist_button_name(config: dict[str, Any]) -> str:
     """Return the localized Assist row name."""
+    if config.get("assist_name"):
+        return config.get("assist_name")
     lang = str(config.get("language") or "en").split("-")[0]
     return _ASSIST_BUTTON_NAMES.get(lang, _ASSIST_BUTTON_NAMES["en"])
+
+
+def _assist_button_icon(config: dict[str, Any]) -> str:
+    """Return the Assist row icon."""
+    return config.get("assist_icon") or _ASSIST_BUTTON_ICON
 
 
 def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
@@ -620,6 +628,7 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
         lines.append(f"  - {speak.entity_id}")
     lines.append("  - type: button")
     lines.append(f"    name: {_assist_button_name(_config(entry))}")
+    lines.append(f"    icon: {_assist_button_icon(_config(entry))}")
     lines.append("    tap_action:")
     lines.append("      action: assist")
     lines.append("      pipeline_id: preferred")
