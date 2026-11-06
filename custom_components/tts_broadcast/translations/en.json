@@ -8,7 +8,8 @@
       "no_speakers": "Select at least one speaker.",
       "invalid_subset": "Speakers without volume control must be a subset of the selected speakers.",
       "phrase_in_both": "A phrase may not appear in both lists.",
-      "no_phrases": "At least one phrase is required unless require phrase is disabled."
+      "no_phrases": "At least one phrase is required unless require phrase is disabled.",
+      "fallback_self": "The fallback agent cannot be this integration."
     },
     "step": {
       "user": {
@@ -20,12 +21,34 @@
           "no_volume_speakers": "Speakers without volume control",
           "volume": "Default volume",
           "language": "Language",
-          "options": "Options"
+          "options": "Options",
+          "strip_phrases": "Strip phrases",
+          "keep_phrases": "Keep phrases",
+          "require_phrase": "Require phrase",
+          "fallback_agent": "Fallback agent",
+          "accent_insensitive": "Accent insensitive",
+          "reply_text": "Reply text"
+        },
+        "data_description": {
+          "strip_phrases": "Phrases removed from the start of a sentence before speaking, e.g. thông báo.",
+          "keep_phrases": "Phrases that keep the whole sentence unchanged, e.g. xin chào.",
+          "require_phrase": "If disabled, every sentence is broadcast.",
+          "fallback_agent": "Agent used when no phrase matches.",
+          "accent_insensitive": "Ignore Vietnamese diacritics when matching.",
+          "reply_text": "Short confirmation returned to Assist."
         }
       }
     }
   },
   "options": {
+    "error": {
+      "tts_entity_not_found": "The selected TTS entity was not found.",
+      "no_speakers": "Select at least one speaker.",
+      "invalid_subset": "Speakers without volume control must be a subset of the selected speakers.",
+      "phrase_in_both": "A phrase may not appear in both lists.",
+      "no_phrases": "At least one phrase is required unless require phrase is disabled.",
+      "fallback_self": "The fallback agent cannot be this integration."
+    },
     "step": {
       "init": {
         "title": "TTS Broadcast",
@@ -55,6 +78,14 @@
           "fallback_agent": "Fallback agent",
           "accent_insensitive": "Accent insensitive",
           "reply_text": "Reply text"
+        },
+        "data_description": {
+          "strip_phrases": "Phrases removed from the start of a sentence before speaking, e.g. thông báo.",
+          "keep_phrases": "Phrases that keep the whole sentence unchanged, e.g. xin chào.",
+          "require_phrase": "If disabled, every sentence is broadcast.",
+          "fallback_agent": "Agent used when no phrase matches.",
+          "accent_insensitive": "Ignore Vietnamese diacritics when matching.",
+          "reply_text": "Short confirmation returned to Assist."
         }
       }
     }
@@ -87,6 +118,11 @@
       },
       "select_none": {
         "name": "Select none"
+      }
+    },
+    "conversation": {
+      "tts_broadcast": {
+        "name": "TTS Broadcast"
       }
     }
   },
@@ -153,6 +189,9 @@
     },
     "speaker_not_configured": {
       "message": "Speaker {speaker} is not configured."
+    },
+    "fallback_self": {
+      "message": "The fallback agent cannot be this integration."
     }
   }
 }

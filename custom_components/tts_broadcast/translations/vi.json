@@ -8,7 +8,8 @@
       "no_speakers": "Chọn ít nhất một loa.",
       "invalid_subset": "Loa không có điều khiển âm lượng phải là tập con của các loa đã chọn.",
       "phrase_in_both": "Một cụm từ không thể ở cả hai danh sách.",
-      "no_phrases": "Cần ít nhất một cụm từ trừ khi tắt bắt buộc cụm từ."
+      "no_phrases": "Cần ít nhất một cụm từ trừ khi tắt bắt buộc cụm từ.",
+      "fallback_self": "Agent dự phòng không thể là chính integration này."
     },
     "step": {
       "user": {
@@ -20,12 +21,34 @@
           "no_volume_speakers": "Loa không có điều khiển âm lượng",
           "volume": "Âm lượng mặc định",
           "language": "Ngôn ngữ",
-          "options": "Tùy chọn"
+          "options": "Tùy chọn",
+          "strip_phrases": "Cụm từ bỏ đi",
+          "keep_phrases": "Cụm từ giữ nguyên",
+          "require_phrase": "Bắt buộc cụm từ",
+          "fallback_agent": "Agent dự phòng",
+          "accent_insensitive": "Không phân biệt dấu",
+          "reply_text": "Văn bản trả lời"
+        },
+        "data_description": {
+          "strip_phrases": "Cụm từ bị bỏ khỏi đầu câu trước khi phát, ví dụ thông báo.",
+          "keep_phrases": "Cụm từ giữ nguyên cả câu, ví dụ xin chào.",
+          "require_phrase": "Nếu tắt, mọi câu đều được phát.",
+          "fallback_agent": "Agent dùng khi không khớp cụm từ.",
+          "accent_insensitive": "Bỏ qua dấu tiếng Việt khi so khớp.",
+          "reply_text": "Xác nhận ngắn trả về Assist."
         }
       }
     }
   },
   "options": {
+    "error": {
+      "tts_entity_not_found": "Không tìm thấy TTS entity đã chọn.",
+      "no_speakers": "Chọn ít nhất một loa.",
+      "invalid_subset": "Loa không có điều khiển âm lượng phải là tập con của các loa đã chọn.",
+      "phrase_in_both": "Một cụm từ không thể ở cả hai danh sách.",
+      "no_phrases": "Cần ít nhất một cụm từ trừ khi tắt bắt buộc cụm từ.",
+      "fallback_self": "Agent dự phòng không thể là chính integration này."
+    },
     "step": {
       "init": {
         "title": "TTS Broadcast",
@@ -55,11 +78,24 @@
           "fallback_agent": "Agent dự phòng",
           "accent_insensitive": "Không phân biệt dấu",
           "reply_text": "Văn bản trả lời"
+        },
+        "data_description": {
+          "strip_phrases": "Cụm từ bị bỏ khỏi đầu câu trước khi phát, ví dụ thông báo.",
+          "keep_phrases": "Cụm từ giữ nguyên cả câu, ví dụ xin chào.",
+          "require_phrase": "Nếu tắt, mọi câu đều được phát.",
+          "fallback_agent": "Agent dùng khi không khớp cụm từ.",
+          "accent_insensitive": "Bỏ qua dấu tiếng Việt khi so khớp.",
+          "reply_text": "Xác nhận ngắn trả về Assist."
         }
       }
     }
   },
   "entity": {
+    "switch": {
+      "speaker": {
+        "name": "Đã chọn"
+      }
+    },
     "number": {
       "volume": {
         "name": "Âm lượng"
@@ -82,6 +118,11 @@
       },
       "select_none": {
         "name": "Bỏ chọn tất cả"
+      }
+    },
+    "conversation": {
+      "tts_broadcast": {
+        "name": "TTS Broadcast"
       }
     }
   },
@@ -148,6 +189,9 @@
     },
     "speaker_not_configured": {
       "message": "Loa {speaker} chưa được cấu hình."
+    },
+    "fallback_self": {
+      "message": "Agent dự phòng không thể là chính integration này."
     }
   }
 }
