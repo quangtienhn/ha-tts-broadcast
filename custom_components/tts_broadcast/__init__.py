@@ -166,9 +166,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 )
             ]
         )
-        add_extra_js_url(
-            hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}"
-        )
+        add_extra_js_url(hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}")
     except Exception as err:  # noqa: BLE001
         _LOGGER.warning("Could not register frontend card: %s", err)
 
@@ -202,11 +200,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif action == "remove" and entity_id in tracked:
             current_config = _config(entry)
             speakers = [
-                s for s in _coerce_speakers(current_config.get(CONF_SPEAKERS))
+                s
+                for s in _coerce_speakers(current_config.get(CONF_SPEAKERS))
                 if s != entity_id
             ]
             no_volume = [
-                s for s in _coerce_speakers(current_config.get(CONF_NO_VOLUME_SPEAKERS))
+                s
+                for s in _coerce_speakers(current_config.get(CONF_NO_VOLUME_SPEAKERS))
                 if s != entity_id
             ]
             hass.config_entries.async_update_entry(
@@ -234,9 +234,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         from homeassistant.components.frontend import remove_extra_js_url
 
-        remove_extra_js_url(
-            hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}"
-        )
+        remove_extra_js_url(hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}")
     except Exception:  # noqa: BLE001
         pass
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
