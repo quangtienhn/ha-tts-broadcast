@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -13,6 +14,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.event import async_track_entity_registry_updated_event
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_FAILED,
@@ -49,6 +51,7 @@ class TTSBroadcastRuntimeData:
     lock: asyncio.Lock
     speakers: list[str] = field(default_factory=list)
     switch_entity_ids: dict[str, str] = field(default_factory=dict)
+    last_result: dict[str, Any] | None = None
 
 
 type TTSBroadcastConfigEntry = ConfigEntry[TTSBroadcastRuntimeData]
@@ -129,6 +132,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 ),
                 probatio.Optional(ATTR_LANGUAGE): cv.string,
                 probatio.Optional(ATTR_OPTIONS): dict,
+                probatio.Optional("cache"): cv.boolean,
             }
         ),
         supports_response=SupportsResponse.OPTIONAL,
@@ -169,6 +173,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     config = _config(entry)
     tracked = _coerce_speakers(config.get(CONF_SPEAKERS))
+    runtime_data.volume = float(config.get(CONF_VOLUME, DEFAULT_VOLUME))
 
     async def _async_speaker_registry_updated(event) -> None:
         data = event.data
@@ -308,9 +313,11 @@ async def async_announce(
     volume: float | None = None,
     language: str | None = None,
     options: Any = None,
+    cache: bool = False,
 ) -> dict[str, Any]:
     config = _config(entry)
     message = message.strip()
+    started = time.monotonic()
     if not message:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
@@ -327,7 +334,11 @@ async def async_announce(
 
         no_volume = set(_coerce_speakers(config.get(CONF_NO_VOLUME_SPEAKERS)))
         if volume is None:
-            volume = config.get(CONF_VOLUME, DEFAULT_VOLUME)
+            volume = (
+                entry.runtime_data.volume
+                if entry.runtime_data.volume is not None
+                else config.get(CONF_VOLUME, DEFAULT_VOLUME)
+            )
         try:
             volume_float = float(volume)
         except (TypeError, ValueError):
@@ -342,19 +353,31 @@ async def async_announce(
             )
 
         failed_volume: list[str] = []
+        volume_errors: dict[str, str] = {}
+        volume_tasks = []
         for speaker in resolved:
             if speaker in no_volume:
                 continue
-            try:
-                await hass.services.async_call(
-                    "media_player",
-                    "volume_set",
-                    {"entity_id": speaker, "volume_level": volume_int / 100.0},
-                    blocking=True,
-                )
-            except Exception as err:  # noqa: BLE001
+
+            async def _volume_call(speaker: str = speaker) -> BaseException | None:
+                try:
+                    await hass.services.async_call(
+                        "media_player",
+                        "volume_set",
+                        {"entity_id": speaker, "volume_level": volume_int / 100.0},
+                        blocking=True,
+                    )
+                    return None
+                except Exception as err:  # noqa: BLE001
+                    return err
+
+            volume_tasks.append(_volume_call())
+        volume_results = await asyncio.gather(*volume_tasks, return_exceptions=True)
+        volume_targets = [s for s in resolved if s not in no_volume]
+        for speaker, err in zip(volume_targets, volume_results, strict=False):
+            if err is not None:
                 failed_volume.append(speaker)
-                _LOGGER.warning("Failed to set volume on %s: %s", speaker, err)
+                volume_errors[speaker] = f"{type(err).__name__}: {err}"
 
         if language is None:
             language = config.get(CONF_LANGUAGE)
@@ -364,34 +387,73 @@ async def async_announce(
         service_data: dict[str, Any] = {
             "media_player_entity_id": resolved,
             "message": message,
-            "cache": False,
+            "cache": cache,
         }
         if language:
             service_data["language"] = language
         if options:
             service_data["options"] = options
 
+        async def _speak_one(speaker: str = speaker) -> BaseException | None:
+            try:
+                await hass.services.async_call(
+                    "tts",
+                    "speak",
+                    {
+                        "entity_id": tts_entity,
+                        **service_data,
+                        "media_player_entity_id": [speaker],
+                    },
+                    blocking=True,
+                )
+                return None
+            except Exception as err:  # noqa: BLE001
+                return err
+
+        speak_tasks = [_speak_one(s) for s in resolved]
+        speak_results = await asyncio.gather(*speak_tasks, return_exceptions=True)
+
         played: list[str] = []
         failed_tts: list[str] = []
-        try:
-            await hass.services.async_call(
-                "tts",
-                "speak",
-                {"entity_id": tts_entity, **service_data},
-                blocking=True,
-            )
-            played = list(resolved)
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("TTS speak failed: %s", err)
-            failed_tts = list(resolved)
-            played = []
+        errors: dict[str, str] = {}
+        for speaker, err in zip(resolved, speak_results, strict=False):
+            if err is None:
+                played.append(speaker)
+            else:
+                failed_tts.append(speaker)
+                errors[speaker] = f"{type(err).__name__}: {err}"
+        errors.update(volume_errors)
 
         failed = failed_tts + [s for s in failed_volume if s not in failed_tts]
-        return {
+        result: dict[str, Any] = {
             ATTR_PLAYED: played,
             ATTR_SKIPPED: skipped_unavailable,
             ATTR_FAILED: failed,
+            "errors": errors,
         }
+        entry.runtime_data.last_result = {
+            "timestamp": dt_util.utcnow().isoformat(),
+            "resolved": resolved,
+            "skipped": skipped_unavailable,
+            "failed": failed,
+            "errors": errors,
+        }
+        _LOGGER.info(
+            "tts_broadcast announce resolved=%s skipped=%s failed=%s",
+            resolved,
+            skipped_unavailable,
+            failed,
+        )
+        for speaker in failed:
+            _LOGGER.warning(
+                "tts_broadcast announce failed for speaker %s: %s",
+                speaker,
+                errors.get(speaker, "unknown error"),
+            )
+        _LOGGER.debug(
+            "tts_broadcast announce took %s seconds", time.monotonic() - started
+        )
+        return result
 
 
 async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
@@ -417,6 +479,7 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
         volume=call.data.get(ATTR_VOLUME),
         language=call.data.get(ATTR_LANGUAGE),
         options=call.data.get(ATTR_OPTIONS),
+        cache=call.data.get("cache") or False,
     )
 
 
@@ -477,6 +540,15 @@ async def _async_get_dashboard_card(
             blocking=True,
         )
     return {"yaml": yaml_text}
+
+
+_ASSIST_BUTTON_NAMES = {"en": "Assist", "vi": "Trợ giúp"}
+
+
+def _assist_button_name(config: dict[str, Any]) -> str:
+    """Return the localized Assist row name."""
+    lang = str(config.get("language") or "en").split("-")[0]
+    return _ASSIST_BUTTON_NAMES.get(lang, _ASSIST_BUTTON_NAMES["en"])
 
 
 def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
@@ -547,7 +619,7 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
     if speak is not None:
         lines.append(f"  - {speak.entity_id}")
     lines.append("  - type: button")
-    lines.append("    name: Assist")
+    lines.append(f"    name: {_assist_button_name(_config(entry))}")
     lines.append("    tap_action:")
     lines.append("      action: assist")
     lines.append("      pipeline_id: preferred")
