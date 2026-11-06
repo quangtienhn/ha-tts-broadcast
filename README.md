@@ -2,7 +2,12 @@
 
 A Home Assistant custom integration for broadcasting a TTS message to multiple media players.
 
-## Installation via HACS
+## Manual installation (private repository)
+1. Copy `custom_components/tts_broadcast` into `config/custom_components/tts_broadcast`, or unzip `dist/tts_broadcast.zip` into `config/custom_components/`.
+2. Restart Home Assistant.
+3. Add the integration from Settings -> Devices & Services.
+
+## Installation via HACS (only if the repository is public)
 1. Open HACS -> Integrations -> Custom repositories.
 2. Add this repository URL and select category "Integration".
 3. Install "TTS Broadcast" and restart Home Assistant.

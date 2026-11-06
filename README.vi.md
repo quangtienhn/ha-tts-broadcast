@@ -2,7 +2,12 @@
 
 Custom integration cho Home Assistant để phát thông báo TTS đến nhiều loa.
 
-## Cài qua HACS
+## Cài thủ công (repo private)
+1. Copy `custom_components/tts_broadcast` vào `config/custom_components/tts_broadcast`, hoặc giải nén `dist/tts_broadcast.zip` vào `config/custom_components/`.
+2. Restart Home Assistant.
+3. Thêm integration trong Settings -> Devices & Services.
+
+## Cài qua HACS (chỉ khi repo public)
 1. HACS -> Integrations -> Custom repositories.
 2. Thêm URL repo, chọn category Integration.
 3. Cài "TTS Broadcast" và restart Home Assistant.
