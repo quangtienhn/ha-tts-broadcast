@@ -1,11 +1,22 @@
 # Testing
 
 ## Automated
+
 - `ruff check .`
 - `ruff format --check .`
 - `pytest tests`
 
+## Manual checklist (real Home Assistant, v1.1.1)
+
+- (a) Configure -> Voice phrases -> change a phrase -> Submit works and the entry reloads.
+- (b) Set a fallback agent, then clear it, and confirm it is really cleared.
+- (c) Selecting the TTS Broadcast agent as its own fallback is rejected.
+- (d) "thông báo" alone gets a spoken request for content, never "missing_content".
+- (e) With `reply_text` set and no speaker selected, the assistant does NOT claim it sent.
+- (f) After changing options, the card is still in the card picker without restarting HA.
+
 ## Manual hardware checklist
+
 1. Call `tts_broadcast.speak` from Developer Tools with a message.
 2. Type a sentence in Assist using the configured trigger phrase.
 3. Speak a sentence through Assist.
