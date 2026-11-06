@@ -14,9 +14,11 @@ CONF_OPTIONS = "options"
 
 DEFAULT_VOLUME = 50
 DEFAULT_TITLE = "TTS Broadcast"
+VERSION = "1.0.0"
 
 SERVICE_SPEAK = "speak"
 SERVICE_STOP = "stop"
+SERVICE_GET_DASHBOARD_CARD = "get_dashboard_card"
 
 ATTR_MESSAGE = "message"
 ATTR_SPEAKERS = "speakers"

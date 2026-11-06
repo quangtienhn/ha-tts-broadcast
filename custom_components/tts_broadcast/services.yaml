@@ -40,6 +40,16 @@ speak:
       required: false
       selector:
         object:
+get_dashboard_card:
+  name: Get dashboard card
+  description: Return a YAML snippet for a stock entities card.
+  fields:
+    notify:
+      name: Notify
+      description: Create a persistent notification containing the YAML.
+      required: false
+      selector:
+        boolean:
 stop:
   name: Stop
   description: Stop playback on the selected speakers.

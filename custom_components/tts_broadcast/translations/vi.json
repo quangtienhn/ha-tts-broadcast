@@ -101,6 +101,16 @@
           "description": "Tập con loa đã cấu hình, tùy chọn."
         }
       }
+    },
+    "get_dashboard_card": {
+      "name": "Lấy card dashboard",
+      "description": "Trả về đoạn YAML cho card entities.",
+      "fields": {
+        "notify": {
+          "name": "Thông báo",
+          "description": "Tạo thông báo chứa YAML."
+        }
+      }
     }
   },
   "exceptions": {

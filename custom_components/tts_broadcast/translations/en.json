@@ -106,6 +106,16 @@
           "description": "Optional subset of configured speakers."
         }
       }
+    },
+    "get_dashboard_card": {
+      "name": "Get dashboard card",
+      "description": "Return a YAML snippet for a stock entities card.",
+      "fields": {
+        "notify": {
+          "name": "Notify",
+          "description": "Create a persistent notification containing the YAML."
+        }
+      }
     }
   },
   "exceptions": {

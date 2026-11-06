@@ -30,8 +30,10 @@ from .const import (
     DEFAULT_VOLUME,
     DOMAIN,
     PLATFORMS,
+    SERVICE_GET_DASHBOARD_CARD,
     SERVICE_SPEAK,
     SERVICE_STOP,
+    VERSION,
 )
 from .const import (
     CONF_LANGUAGE as CONF_LANGUAGE_KEY,
@@ -64,7 +66,6 @@ def _get_entry(hass: HomeAssistant) -> ConfigEntry | None:
     entries = _get_entries(hass)
     if not entries:
         return None
-    # Prefer a loaded entry.
     for entry in entries:
         if entry.state == ConfigEntryState.LOADED:
             return entry
@@ -83,6 +84,9 @@ def _coerce_speakers(value: Any) -> list[str]:
     return [str(item) for item in value]
 
 
+_LOGGER = logging.getLogger(__name__)
+
+
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the integration domain."""
     hass.data.setdefault(DOMAIN, {"lock": asyncio.Lock(), "entries": {}})
@@ -92,6 +96,9 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     async def _handle_stop(call: ServiceCall) -> dict[str, Any] | None:
         return await _async_stop(hass, call)
+
+    async def _handle_get_dashboard_card(call: ServiceCall) -> dict[str, Any] | None:
+        return await _async_get_dashboard_card(hass, call)
 
     hass.services.async_register(
         DOMAIN,
@@ -123,6 +130,18 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_DASHBOARD_CARD,
+        _handle_get_dashboard_card,
+        schema=probatio.Schema(
+            {
+                probatio.Optional("notify"): cv.boolean,
+            }
+        ),
+        supports_response=SupportsResponse.ONLY,
+    )
+
     return True
 
 
@@ -131,6 +150,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime_data = TTSBroadcastRuntimeData(entry=entry, lock=hass.data[DOMAIN]["lock"])
     entry.runtime_data = runtime_data  # type: ignore[attr-defined]
     hass.data[DOMAIN]["entries"][entry.entry_id] = runtime_data
+
+    try:
+        from homeassistant.components.frontend import add_extra_js_url
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    "/tts_broadcast/tts-broadcast-card.js",
+                    hass.config.path(
+                        "custom_components/tts_broadcast/www/tts-broadcast-card.js"
+                    ),
+                    cache_headers=True,
+                )
+            ]
+        )
+        add_extra_js_url(
+            hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}"
+        )
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Could not register frontend card: %s", err)
 
     config = _config(entry)
     tracked = _coerce_speakers(config.get(CONF_SPEAKERS))
@@ -162,13 +202,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif action == "remove" and entity_id in tracked:
             current_config = _config(entry)
             speakers = [
-                s
-                for s in _coerce_speakers(current_config.get(CONF_SPEAKERS))
+                s for s in _coerce_speakers(current_config.get(CONF_SPEAKERS))
                 if s != entity_id
             ]
             no_volume = [
-                s
-                for s in _coerce_speakers(current_config.get(CONF_NO_VOLUME_SPEAKERS))
+                s for s in _coerce_speakers(current_config.get(CONF_NO_VOLUME_SPEAKERS))
                 if s != entity_id
             ]
             hass.config_entries.async_update_entry(
@@ -193,6 +231,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    try:
+        from homeassistant.components.frontend import remove_extra_js_url
+
+        remove_extra_js_url(
+            hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}"
+        )
+    except Exception:  # noqa: BLE001
+        pass
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN]["entries"].pop(entry.entry_id, None)
@@ -202,14 +248,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _resolve_speakers(
     hass: HomeAssistant, entry: ConfigEntry, requested: list[str] | None
 ) -> tuple[list[str], list[str]]:
-    """Resolve the list of speakers to use.
-
-    Returns (resolved_speakers, skipped_unavailable).
-    """
+    """Resolve the list of speakers to use."""
     config = _config(entry)
     configured = _coerce_speakers(config.get(CONF_SPEAKERS))
     if requested:
-        # Validate subset.
         configured_set = set(configured)
         for speaker in requested:
             if speaker not in configured_set:
@@ -221,11 +263,10 @@ async def _resolve_speakers(
         candidates = list(requested)
     else:
         runtime_data: TTSBroadcastRuntimeData = entry.runtime_data  # type: ignore[attr-defined]
-        # Use currently selected switches.
-        selected: list[str] = []
         from homeassistant.helpers import entity_registry as er
 
         registry = er.async_get(hass)
+        selected: list[str] = []
         for speaker in configured:
             switch_entity_id = runtime_data.switch_entity_ids.get(speaker)
             if switch_entity_id is None:
@@ -242,12 +283,6 @@ async def _resolve_speakers(
             if switch_entity_id is not None:
                 state = hass.states.get(switch_entity_id)
                 is_on = bool(state is not None and state.state == "on")
-            else:
-                # Fall back to scanning switch entities for this entry.
-                for entity_id in hass.states.async_entity_ids("switch"):
-                    if entity_id.endswith(speaker.replace(".", "_")):
-                        state = hass.states.get(entity_id)
-                        is_on = bool(state is not None and state.state == "on")
             if is_on:
                 selected.append(speaker)
         candidates = selected
@@ -262,9 +297,6 @@ async def _resolve_speakers(
             continue
         resolved.append(speaker)
     return resolved, skipped
-
-
-_LOGGER = logging.getLogger(__name__)
 
 
 async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
@@ -315,7 +347,6 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
                 translation_key="no_tts_entity",
             )
 
-        # Set volume on speakers that support it.
         failed_volume: list[str] = []
         for speaker in resolved:
             if speaker in no_volume:
@@ -405,3 +436,107 @@ async def _async_stop(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
             ATTR_SKIPPED: skipped_unavailable,
             ATTR_FAILED: failed,
         }
+
+
+async def _async_get_dashboard_card(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    entry = _get_entry(hass)
+    if entry is None:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="no_config_entry",
+        )
+    yaml_text = _build_dashboard_card_yaml(hass, entry)
+    if call.data.get("notify"):
+        await hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "TTS Broadcast",
+                "message": f"```yaml\n{yaml_text}\n```",
+            },
+            blocking=True,
+        )
+    return {"yaml": yaml_text}
+
+
+def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    entities = [
+        e for e in registry.entities.values() if e.config_entry_id == entry.entry_id
+    ]
+    switches = sorted(
+        [
+            e
+            for e in entities
+            if e.domain == "switch" and e.translation_key == "speaker"
+        ],
+        key=lambda e: (
+            (
+                hass.states.get(e.entity_id).attributes.get("friendly_name")
+                if hass.states.get(e.entity_id)
+                else None
+            )
+            or e.entity_id
+        ),
+    )
+    volume = next(
+        (e for e in entities if e.domain == "number" and e.translation_key == "volume"),
+        None,
+    )
+    message = next(
+        (e for e in entities if e.domain == "text" and e.translation_key == "message"),
+        None,
+    )
+    speak = next(
+        (e for e in entities if e.domain == "button" and e.translation_key == "speak"),
+        None,
+    )
+    stop = next(
+        (e for e in entities if e.domain == "button" and e.translation_key == "stop"),
+        None,
+    )
+    select_all = next(
+        (
+            e
+            for e in entities
+            if e.domain == "button" and e.translation_key == "select_all"
+        ),
+        None,
+    )
+    select_none = next(
+        (
+            e
+            for e in entities
+            if e.domain == "button" and e.translation_key == "select_none"
+        ),
+        None,
+    )
+
+    lines = ["type: entities", "title: TTS Broadcast", "entities:"]
+    for entity in switches:
+        lines.append(f"  - {entity.entity_id}")
+    if volume is not None or message is not None:
+        lines.append("  - type: divider")
+        if volume is not None:
+            lines.append(f"  - {volume.entity_id}")
+        if message is not None:
+            lines.append(f"  - {message.entity_id}")
+    lines.append("  - type: divider")
+    if speak is not None:
+        lines.append(f"  - {speak.entity_id}")
+    lines.append("  - type: button")
+    lines.append("    name: Assist")
+    lines.append("    tap_action:")
+    lines.append("      action: assist")
+    lines.append("      start_listening: true")
+    if stop is not None:
+        lines.append(f"  - {stop.entity_id}")
+    if select_all is not None:
+        lines.append(f"  - {select_all.entity_id}")
+    if select_none is not None:
+        lines.append(f"  - {select_none.entity_id}")
+    return "\n".join(lines)

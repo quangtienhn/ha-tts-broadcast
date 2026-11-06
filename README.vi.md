@@ -28,6 +28,16 @@ Import file `blueprints/automation/tts_broadcast/voice_announce.yaml` thủ côn
 ## Dashboard
 Xem snippet trong README.md.
 
+## Dashboard card
+Card `tts-broadcast-card` tự phát hiện entity. Sau khi cài, hard refresh trình duyệt. Trong editor dashboard, Add card -> TTS Broadcast.
+
+Lấy YAML fallback:
+```yaml
+service: tts_broadcast.get_dashboard_card
+data:
+  notify: true
+```
+
 ## Giới hạn đã biết
 - Dừng phát trên ESPHome qua `media_stop` chưa xác minh.
 - Loa Tapo phụ thuộc thiết bị.

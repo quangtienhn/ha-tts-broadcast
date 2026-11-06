@@ -31,6 +31,7 @@ class TTSBroadcastSpeakerSwitch(SwitchEntity, RestoreEntity):
     """Switch selecting a speaker."""
 
     _attr_has_entity_name = True
+    _attr_translation_key = "speaker"
 
     def __init__(
         self, hass: HomeAssistant, entry: TTSBroadcastConfigEntry, speaker: str

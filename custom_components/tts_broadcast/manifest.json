@@ -1,6 +1,7 @@
 {
   "domain": "tts_broadcast",
   "name": "TTS Broadcast",
+  "after_dependencies": ["frontend", "http"],
   "codeowners": ["@quangtienhn"],
   "config_flow": true,
   "documentation": "https://github.com/quangtienhn/ha-tts-broadcast",

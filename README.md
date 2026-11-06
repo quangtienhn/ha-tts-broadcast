@@ -74,6 +74,18 @@ tap_action:
     message: "Hello"
 ```
 
+## Dashboard card
+The integration serves a custom card `tts-broadcast-card`. After installation, hard-refresh the browser. In the dashboard editor, Add card -> TTS Broadcast. The card discovers entities automatically.
+
+Card options (all optional): `title`, `show_volume`, `show_message`, `show_assist`, `assist_pipeline_id`, `show_select_buttons`.
+
+YAML fallback:
+```yaml
+service: tts_broadcast.get_dashboard_card
+data:
+  notify: true
+```
+
 ## Known limitations
 - ESPHome announcement interruption via `media_stop` is unverified.
 - Tapo speaker compatibility depends on the device.
