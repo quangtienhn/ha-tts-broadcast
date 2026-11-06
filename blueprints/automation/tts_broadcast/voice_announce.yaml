@@ -1,0 +1,32 @@
+blueprint:
+  name: TTS Broadcast voice announce
+  description: Trigger TTS Broadcast from Assist sentences.
+  domain: automation
+  input:
+    sentences:
+      name: Trigger sentences
+      description: Sentences with a {message} slot.
+      selector:
+        text:
+          multiple: true
+      default:
+        - "thông báo {message}"
+        - "thông báo rằng {message}"
+    response_text:
+      name: Conversation response
+      description: Short text returned to Assist.
+      default: "Đã phát thông báo."
+      selector:
+        text:
+
+trigger:
+  - platform: conversation
+    command: !input sentences
+
+action:
+  - service: tts_broadcast.speak
+    data:
+      message: "{{ trigger.slots.message }}"
+  - set_conversation_response: !input response_text
+
+mode: single

@@ -1,0 +1,39 @@
+# Decisions and verified findings
+
+## Manifest
+- `integration_type`: `helper` (one config entry provides helper entities). Source: manifest docs.
+- `iot_class`: `calculated` (no device communication; logic only).
+- `single_config_entry`: `true`.
+
+## TTS speak list support
+- Verified in installed HA 2026.11.0 source: `homeassistant/components/tts/services.py` registers `speak` with `ATTR_MEDIA_PLAYER_ENTITY_ID: cv.comp_entity_ids`, so a list is accepted. The integration calls `tts.speak` once with `media_player_entity_id` as a list.
+
+## Config and options flow
+- Normal `ConfigFlow` + `OptionsFlowWithReload`. Options flow reloads the entry automatically. Validation performed in code.
+
+## Restore entities
+- `RestoreEntity`, `RestoreNumber`, `RestoreText` used. `RestoreNumber`/`RestoreText` already include their base entity, so subclass only the restore class.
+
+## Entity registry tracking
+- `async_track_entity_registry_updated_event` used for rename handling and updates stored speaker IDs, then reloads the entry.
+
+## Blueprints
+- Integrations cannot auto-install blueprints. Blueprint is provided at repository root `blueprints/automation/tts_broadcast/voice_announce.yaml`.
+- Sentence triggers use `platform: conversation` with `command: !input sentences`, verified in `homeassistant/components/conversation/trigger.py`.
+- `set_conversation_response` is a supported script action, verified in `homeassistant/helpers/config_validation.py`.
+
+## Services
+- Registered once in `async_setup` (domain level) with `SupportsResponse.OPTIONAL`.
+- Concurrent calls serialized with one `asyncio.Lock` stored in `hass.data[DOMAIN]`.
+
+## Sources
+- Manifest: https://contributors.home-assistant.io/core/integrations/manifest/
+- Config flow: https://contributors.home-assistant.io/core/integrations/config-flow/
+- TTS services source: installed HA 2026.11.0 `homeassistant/components/tts/services.py`
+- Conversation trigger source: installed HA 2026.11.0 `homeassistant/components/conversation/trigger.py`
+
+## Uncertainties
+- `media_player.media_stop` interruption on ESPHome announcement pipelines is unverified.
+- Tapo speaker compatibility is unknown; configured as no-volume speaker.
+- Wyoming TTS language handling: language is optional and empty by default.
+- Sentence triggers with an LLM conversation agent may require "Prefer handling commands locally"; unverified.
