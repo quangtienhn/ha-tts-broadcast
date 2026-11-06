@@ -14,7 +14,7 @@ CONF_OPTIONS = "options"
 
 DEFAULT_VOLUME = 50
 DEFAULT_TITLE = "TTS Broadcast"
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 CONF_STRIP_PHRASES = "strip_phrases"
 CONF_KEEP_PHRASES = "keep_phrases"

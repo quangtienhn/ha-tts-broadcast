@@ -1,4 +1,4 @@
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 const STRINGS = {
   en: {
@@ -181,7 +181,7 @@ class TTSBroadcastCardEditor extends HTMLElement {
       { name: "show_volume", selector: { boolean: {} } },
       { name: "show_message", selector: { boolean: {} } },
       { name: "show_assist", selector: { boolean: {} } },
-      { name: "assist_pipeline_id", selector: { text: {} } },
+      { name: "assist_pipeline_id", selector: { assist_pipeline: {} } },
       { name: "show_select_buttons", selector: { boolean: {} } },
     ];
     const root = this.shadowRoot;

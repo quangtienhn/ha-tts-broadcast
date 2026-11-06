@@ -23,7 +23,9 @@ from .const import (
     ATTR_SKIPPED,
     ATTR_SPEAKERS,
     ATTR_VOLUME,
+    CONF_LANGUAGE,
     CONF_NO_VOLUME_SPEAKERS,
+    CONF_OPTIONS,
     CONF_SPEAKERS,
     CONF_TTS_ENTITY,
     CONF_VOLUME,
@@ -34,12 +36,6 @@ from .const import (
     SERVICE_SPEAK,
     SERVICE_STOP,
     VERSION,
-)
-from .const import (
-    CONF_LANGUAGE as CONF_LANGUAGE_KEY,
-)
-from .const import (
-    CONF_OPTIONS as CONF_OPTIONS_KEY,
 )
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -62,7 +58,7 @@ def _get_entries(hass: HomeAssistant) -> list[ConfigEntry]:
     return hass.config_entries.async_entries(DOMAIN)
 
 
-def _get_entry(hass: HomeAssistant) -> ConfigEntry | None:
+def _get_entry(hass: HomeAssistant) -> TTSBroadcastConfigEntry | None:
     entries = _get_entries(hass)
     if not entries:
         return None
@@ -90,6 +86,26 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the integration domain."""
     hass.data.setdefault(DOMAIN, {"lock": asyncio.Lock(), "entries": {}})
+    if not hass.data[DOMAIN].get("static_registered"):
+        try:
+            from homeassistant.components.frontend import add_extra_js_url
+            from homeassistant.components.http import StaticPathConfig
+
+            await hass.http.async_register_static_paths(
+                [
+                    StaticPathConfig(
+                        "/tts_broadcast/tts-broadcast-card.js",
+                        hass.config.path(
+                            "custom_components/tts_broadcast/www/tts-broadcast-card.js"
+                        ),
+                        cache_headers=True,
+                    )
+                ]
+            )
+            add_extra_js_url(hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}")
+            hass.data[DOMAIN]["static_registered"] = True
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Could not register frontend card: %s", err)
 
     async def _handle_speak(call: ServiceCall) -> dict[str, Any] | None:
         return await _async_speak(hass, call)
@@ -150,25 +166,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     runtime_data = TTSBroadcastRuntimeData(entry=entry, lock=hass.data[DOMAIN]["lock"])
     entry.runtime_data = runtime_data  # type: ignore[attr-defined]
     hass.data[DOMAIN]["entries"][entry.entry_id] = runtime_data
-
-    try:
-        from homeassistant.components.frontend import add_extra_js_url
-        from homeassistant.components.http import StaticPathConfig
-
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    "/tts_broadcast/tts-broadcast-card.js",
-                    hass.config.path(
-                        "custom_components/tts_broadcast/www/tts-broadcast-card.js"
-                    ),
-                    cache_headers=True,
-                )
-            ]
-        )
-        add_extra_js_url(hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}")
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning("Could not register frontend card: %s", err)
 
     config = _config(entry)
     tracked = _coerce_speakers(config.get(CONF_SPEAKERS))
@@ -231,12 +228,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    try:
-        from homeassistant.components.frontend import remove_extra_js_url
-
-        remove_extra_js_url(hass, f"/tts_broadcast/tts-broadcast-card.js?v={VERSION}")
-    except Exception:  # noqa: BLE001
-        pass
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN]["entries"].pop(entry.entry_id, None)
@@ -244,7 +235,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _resolve_speakers(
-    hass: HomeAssistant, entry: ConfigEntry, requested: list[str] | None
+    hass: HomeAssistant, entry: TTSBroadcastConfigEntry, requested: list[str] | None
 ) -> tuple[list[str], list[str]]:
     """Resolve the list of speakers to use."""
     config = _config(entry)
@@ -297,9 +288,21 @@ async def _resolve_speakers(
     return resolved, skipped
 
 
+def _own_conversation_entity_id(
+    hass: HomeAssistant, entry: TTSBroadcastConfigEntry
+) -> str | None:
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    for ent in registry.entities.values():
+        if ent.config_entry_id == entry.entry_id and ent.domain == "conversation":
+            return ent.entity_id
+    return None
+
+
 async def async_announce(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: TTSBroadcastConfigEntry,
     message: str,
     speakers: list[str] | None = None,
     volume: float | None = None,
@@ -354,9 +357,9 @@ async def async_announce(
                 _LOGGER.warning("Failed to set volume on %s: %s", speaker, err)
 
         if language is None:
-            language = config.get(CONF_LANGUAGE_KEY)
+            language = config.get(CONF_LANGUAGE)
         if options is None:
-            options = config.get(CONF_OPTIONS_KEY)
+            options = config.get(CONF_OPTIONS)
 
         service_data: dict[str, Any] = {
             "media_player_entity_id": resolved,
@@ -428,7 +431,7 @@ async def _async_stop(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     requested = call.data.get(ATTR_SPEAKERS)
     requested_list = _coerce_speakers(requested) if requested is not None else None
 
-    async with entry.runtime_data.lock:  # type: ignore[attr-defined]
+    async with entry.runtime_data.lock:
         resolved, skipped_unavailable = await _resolve_speakers(
             hass, entry, requested_list
         )
@@ -547,6 +550,7 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
     lines.append("    name: Assist")
     lines.append("    tap_action:")
     lines.append("      action: assist")
+    lines.append("      pipeline_id: preferred")
     lines.append("      start_listening: true")
     if stop is not None:
         lines.append(f"  - {stop.entity_id}")
