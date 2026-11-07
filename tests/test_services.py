@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -347,3 +350,49 @@ async def test_stop(hass: HomeAssistant, setup_entry) -> None:
 
     assert result["failed"] == []
     assert len(stop_calls) == 1
+
+
+async def test_audit_true_does_not_hold_announce_lock(
+    hass: HomeAssistant, setup_entry
+) -> None:
+    """audit=true must not hold the announce lock during the audit window.
+
+    Announcement 1 (audit=true) waits for the audit window *outside* the
+    announce lock, so announcement 2 can complete while announcement 1 is
+    still waiting for its audit.
+    """
+    speak_calls = async_mock_service(hass, "tts", "speak")
+    async_mock_service(hass, "media_player", "volume_set")
+
+    # setup_entry already turned on exactly one switch (switches[0]).
+
+    # Announcement 1 with audit=true: returns quickly, then waits for the
+    # audit window outside the announce lock.
+    task1 = hass.async_create_task(
+        hass.services.async_call(
+            DOMAIN,
+            "speak",
+            {"message": "one", "audit": True},
+            blocking=True,
+            return_response=True,
+        )
+    )
+    await hass.async_block_till_done()
+    # Give announcement 1 time to leave the announce lock and enter the
+    # audit wait.
+    await asyncio.sleep(0.05)
+
+    # Announcement 2 (no audit) must complete immediately: the announce
+    # lock is not held by announcement 1's audit wait.
+    result2 = await hass.services.async_call(
+        DOMAIN, "speak", {"message": "two"}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+
+    assert result2["played"] == ["media_player.speaker_one"]
+    assert len(speak_calls) == 2
+
+    task1.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task1
+    await hass.async_block_till_done()

@@ -40,10 +40,12 @@ from .const import (
     AUDIT_STORE_MAX,
     AUDIT_WINDOW_SECONDS,
     CONF_AUDIT_ALL_MEDIA_PLAYERS,
+    CONF_KEEP_PHRASES,
     CONF_LANGUAGE,
     CONF_NO_VOLUME_SPEAKERS,
     CONF_OPTIONS,
     CONF_SPEAKERS,
+    CONF_STRIP_PHRASES,
     CONF_TTS_ENTITY,
     CONF_VOLUME,
     DEFAULT_VOLUME,
@@ -377,7 +379,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 def _async_update_assist_pipeline_issue(
     hass: HomeAssistant, entry: TTSBroadcastConfigEntry
 ) -> None:
-    """Create or clear the 'no Assist pipeline' Repairs issue."""
+    """Create or clear the 'no Assist pipeline' Repairs issue.
+
+    Only relevant when voice phrases are configured, since the TALK button
+    is otherwise not used to announce. Non-intrusive: warning severity, not
+    fixable, cleared automatically when a pipeline exists.
+    """
+    config = _config(entry)
+    strip = config.get(CONF_STRIP_PHRASES) or []
+    keep = config.get(CONF_KEEP_PHRASES) or []
+    if not strip and not keep:
+        # Voice phrases not configured: TALK button not relevant.
+        async_delete_issue(hass, DOMAIN, "no_assist_pipeline")
+        return
     pipeline_id = _find_assist_pipeline_id(hass, entry)
     if pipeline_id is _ASSIST_PIPELINE_UNAVAILABLE:
         # assist_pipeline not set up yet, or our conversation entity missing:
