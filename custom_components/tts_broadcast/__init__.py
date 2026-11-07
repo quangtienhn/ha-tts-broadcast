@@ -10,10 +10,13 @@ from typing import Any
 
 import probatio
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.core import Context, HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.event import async_track_entity_registry_updated_event
+from homeassistant.helpers.event import (
+    async_track_entity_registry_updated_event,
+    async_track_state_change_event,
+)
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -24,6 +27,8 @@ from .const import (
     ATTR_PLAYED,
     ATTR_SKIPPED,
     ATTR_SPEAKERS,
+    ATTR_TARGETED,
+    ATTR_UNEXPECTED_STARTED,
     ATTR_VOLUME,
     CONF_LANGUAGE,
     CONF_NO_VOLUME_SPEAKERS,
@@ -34,6 +39,7 @@ from .const import (
     DEFAULT_VOLUME,
     DOMAIN,
     PLATFORMS,
+    SERVICE_DEBUG_SELECTION,
     SERVICE_GET_DASHBOARD_CARD,
     SERVICE_SPEAK,
     SERVICE_STOP,
@@ -162,7 +168,90 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         supports_response=SupportsResponse.ONLY,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DEBUG_SELECTION,
+        _async_debug_selection,
+        schema=probatio.Schema({}),
+        supports_response=SupportsResponse.ONLY,
+    )
+
     return True
+
+
+async def _async_debug_selection(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """Diagnostic service: report speaker selection state with no side effects."""
+    entry = _get_entry(hass)
+    if entry is None:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="no_config_entry",
+        )
+    from homeassistant.helpers import entity_registry as er
+
+    config = _config(entry)
+    configured = _coerce_speakers(config.get(CONF_SPEAKERS))
+    registry = er.async_get(hass)
+
+    speakers_info: list[dict[str, Any]] = []
+    for speaker in configured:
+        state = hass.states.get(speaker)
+        attrs = dict(state.attributes) if state else {}
+        reg_ent = registry.async_get(speaker)
+        group_members = attrs.get("group_members") or attrs.get("entity_id") or []
+        switch_entity_id = entry.runtime_data.switch_entity_ids.get(speaker)
+        switch_state = hass.states.get(switch_entity_id) if switch_entity_id else None
+        reg_lookup = None
+        for ent in registry.entities.values():
+            if (
+                ent.config_entry_id == entry.entry_id
+                and ent.domain == "switch"
+                and ent.unique_id == f"{entry.entry_id}_switch_{speaker}"
+            ):
+                reg_lookup = ent.entity_id
+                break
+        speakers_info.append(
+            {
+                "speaker": speaker,
+                "state": state.state if state else None,
+                "group_members": (
+                    list(group_members)
+                    if isinstance(group_members, (list, tuple, set))
+                    else group_members
+                ),
+                "sync_group": attrs.get("sync_group"),
+                "supported_features": attrs.get("supported_features"),
+                "platform": reg_ent.platform if reg_ent else None,
+                "device_id": reg_ent.device_id if reg_ent else None,
+                "switch_entity_id": switch_entity_id,
+                "switch_state": switch_state.state if switch_state else None,
+                "mapping_matches_registry_lookup": switch_entity_id == reg_lookup,
+            }
+        )
+
+    resolved, skipped = await _resolve_speakers(hass, entry, None)
+
+    grouping: list[dict[str, Any]] = []
+    for ent in registry.entities.values():
+        if ent.domain != "media_player":
+            continue
+        st = hass.states.get(ent.entity_id)
+        attrs = dict(st.attributes) if st else {}
+        members = attrs.get("group_members") or []
+        if isinstance(members, (list, tuple, set)):
+            for m in members:
+                if m in configured and m != ent.entity_id:
+                    grouping.append({"media_player": ent.entity_id, "lists_speaker": m})
+
+    return {
+        "speakers": speakers_info,
+        "resolved": resolved,
+        "skipped": skipped,
+        "grouping": grouping,
+        "last_result": entry.runtime_data.last_result,
+    }
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -228,6 +317,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Registry hygiene: warn about stale or duplicate switch mappings (no auto-delete)
+    configured_set = set(_coerce_speakers(config.get(CONF_SPEAKERS)))
+    from homeassistant.helpers import entity_registry as er
+
+    registry = er.async_get(hass)
+    prefix = f"{entry.entry_id}_switch_"
+    seen_speakers: dict[str, str] = {}
+    for ent in registry.entities.values():
+        if ent.config_entry_id != entry.entry_id or ent.domain != "switch":
+            continue
+        if not ent.unique_id or not ent.unique_id.startswith(prefix):
+            continue
+        speaker = ent.unique_id[len(prefix) :]
+        if speaker not in configured_set:
+            _LOGGER.warning(
+                "tts_broadcast stale switch entity %s maps to unconfigured speaker %s",
+                ent.entity_id,
+                speaker,
+            )
+        elif speaker in seen_speakers:
+            _LOGGER.warning(
+                "tts_broadcast duplicate switch mapping for speaker %s: %s and %s",
+                speaker,
+                seen_speakers[speaker],
+                ent.entity_id,
+            )
+        else:
+            seen_speakers[speaker] = ent.entity_id
+
     return True
 
 
@@ -314,10 +433,13 @@ async def async_announce(
     language: str | None = None,
     options: Any = None,
     cache: bool = False,
+    context: Context | None = None,
 ) -> dict[str, Any]:
     config = _config(entry)
     message = message.strip()
     started = time.monotonic()
+    if context is None:
+        context = Context()
     if not message:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
@@ -364,8 +486,12 @@ async def async_announce(
                     await hass.services.async_call(
                         "media_player",
                         "volume_set",
-                        {"entity_id": speaker, "volume_level": volume_int / 100.0},
+                        {
+                            "entity_id": speaker,
+                            "volume_level": volume_int / 100.0,
+                        },
                         blocking=True,
+                        context=context,
                     )
                     return None
                 except Exception as err:  # noqa: BLE001
@@ -405,6 +531,7 @@ async def async_announce(
                         "media_player_entity_id": [speaker],
                     },
                     blocking=True,
+                    context=context,
                 )
                 return None
             except Exception as err:  # noqa: BLE001
@@ -429,17 +556,25 @@ async def async_announce(
             ATTR_PLAYED: played,
             ATTR_SKIPPED: skipped_unavailable,
             ATTR_FAILED: failed,
+            ATTR_TARGETED: resolved,
+            ATTR_UNEXPECTED_STARTED: [],
             "errors": errors,
         }
         entry.runtime_data.last_result = {
             "timestamp": dt_util.utcnow().isoformat(),
+            "context_id": context.id,
             "resolved": resolved,
             "skipped": skipped_unavailable,
             "failed": failed,
             "errors": errors,
+            "targeted": resolved,
+            "unexpected_started": [],
         }
         _LOGGER.info(
-            "tts_broadcast announce resolved=%s skipped=%s failed=%s",
+            "tts_broadcast announce context=%s targeted=%s "
+            "resolved=%s skipped=%s failed=%s",
+            context.id,
+            resolved,
             resolved,
             skipped_unavailable,
             failed,
@@ -452,6 +587,42 @@ async def async_announce(
             )
         _LOGGER.debug(
             "tts_broadcast announce took %s seconds", time.monotonic() - started
+        )
+
+        async def _audit_unexpected() -> None:
+            unexpected: list[str] = []
+
+            def _listener(event) -> None:
+                new_state = event.data.get("new_state")
+                if new_state is None:
+                    return
+                if new_state.state not in ("playing", "buffering"):
+                    return
+                entity_id = new_state.entity_id or ""
+                if not entity_id.startswith("media_player."):
+                    return
+                if entity_id not in resolved:
+                    unexpected.append(entity_id)
+
+            unsub = async_track_state_change_event(
+                hass,
+                hass.states.async_entity_ids("media_player"),
+                _listener,
+            )
+            try:
+                await asyncio.sleep(20)
+            finally:
+                unsub()
+            entry.runtime_data.last_result["unexpected_started"] = unexpected
+            for entity_id in unexpected:
+                _LOGGER.warning(
+                    "tts_broadcast unexpected player started %s context=%s",
+                    entity_id,
+                    context.id,
+                )
+
+        entry.async_create_background_task(
+            hass, _audit_unexpected(), "tts_broadcast_audit"
         )
         return result
 
@@ -480,6 +651,7 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
         language=call.data.get(ATTR_LANGUAGE),
         options=call.data.get(ATTR_OPTIONS),
         cache=call.data.get("cache") or False,
+        context=call.context,
     )
 
 
