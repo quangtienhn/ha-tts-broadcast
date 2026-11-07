@@ -17,7 +17,20 @@ from homeassistant.helpers.event import (
     async_track_entity_registry_updated_event,
     async_track_state_change_event,
 )
+from homeassistant.helpers.issue_registry import (
+    IssueSeverity,
+    async_create_issue,
+    async_delete_issue,
+)
 from homeassistant.util import dt as dt_util
+
+try:
+    from homeassistant.components.assist_pipeline import async_get_pipelines
+
+    _HASS_HAS_ASSIST_PIPELINE_LIST = True
+except Exception:  # pragma: no cover - assist_pipeline not available
+    async_get_pipelines = None  # type: ignore[assignment]
+    _HASS_HAS_ASSIST_PIPELINE_LIST = False
 
 from .const import (
     ATTR_FAILED,
@@ -45,6 +58,10 @@ from .const import (
     SERVICE_STOP,
     VERSION,
 )
+
+# Sentinel returned by _find_assist_pipeline_id when assist_pipeline is not
+# (yet) set up, so the caller does not raise a spurious Repairs issue.
+_ASSIST_PIPELINE_UNAVAILABLE = object()
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -347,7 +364,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             seen_speakers[speaker] = ent.entity_id
 
+    # Repairs issue: warn when no Assist pipeline uses our conversation agent.
+    _async_update_assist_pipeline_issue(hass, entry)
+
     return True
+
+
+def _async_update_assist_pipeline_issue(
+    hass: HomeAssistant, entry: TTSBroadcastConfigEntry
+) -> None:
+    """Create or clear the 'no Assist pipeline' Repairs issue."""
+    pipeline_id = _find_assist_pipeline_id(hass, entry)
+    if pipeline_id is _ASSIST_PIPELINE_UNAVAILABLE:
+        # assist_pipeline not set up yet, or our conversation entity missing:
+        # do not raise a spurious issue.
+        return
+    if pipeline_id:
+        async_delete_issue(hass, DOMAIN, "no_assist_pipeline")
+    else:
+        async_create_issue(
+            hass,
+            DOMAIN,
+            "no_assist_pipeline",
+            is_fixable=False,
+            severity=IssueSeverity.WARNING,
+            translation_key="no_assist_pipeline",
+            config_entry_id=entry.entry_id,
+        )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -731,6 +774,33 @@ def _assist_button_icon(config: dict[str, Any]) -> str:
     return config.get("assist_icon") or _ASSIST_BUTTON_ICON
 
 
+def _find_assist_pipeline_id(
+    hass: HomeAssistant, entry: TTSBroadcastConfigEntry
+) -> str | None | object:
+    """Return the id of an Assist pipeline that uses our conversation agent.
+
+    Uses the public ``async_get_pipelines`` API. Returns the id when exactly one
+    pipeline uses our conversation entity, ``None`` when none does, or the
+    ``_ASSIST_PIPELINE_UNAVAILABLE`` sentinel when the check could not be run
+    (assist_pipeline not set up, or our conversation entity missing).
+    """
+    if not _HASS_HAS_ASSIST_PIPELINE_LIST:
+        return _ASSIST_PIPELINE_UNAVAILABLE
+    our_entity = _own_conversation_entity_id(hass, entry)
+    if not our_entity:
+        return _ASSIST_PIPELINE_UNAVAILABLE
+    try:
+        pipelines = async_get_pipelines(hass)
+    except Exception:  # pragma: no cover - assist_pipeline not ready
+        return _ASSIST_PIPELINE_UNAVAILABLE
+    ours = [
+        p for p in pipelines if getattr(p, "conversation_engine", None) == our_entity
+    ]
+    if len(ours) == 1:
+        return ours[0].id
+    return None
+
+
 def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
     from homeassistant.helpers import entity_registry as er
 
@@ -803,7 +873,17 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
     lines.append(f"    icon: {_assist_button_icon(_config(entry))}")
     lines.append("    tap_action:")
     lines.append("      action: assist")
-    lines.append("      pipeline_id: preferred")
+    pipeline_id = _find_assist_pipeline_id(hass, entry)
+    if isinstance(pipeline_id, str):
+        lines.append(f"      pipeline_id: {pipeline_id}")
+    else:
+        lines.append("      # pipeline_id: <pipeline using the TTS Broadcast agent>")
+        lines.append("      # No unique Assist pipeline uses the TTS Broadcast agent.")
+        lines.append(
+            "      # Create one: Settings > Voice assistants > Add assistant >"
+        )
+        lines.append("      # Conversation agent: TTS Broadcast.")
+        lines.append("      # Or set pipeline_id explicitly (e.g. 'preferred').")
     lines.append("      start_listening: true")
     if stop is not None:
         lines.append(f"  - {stop.entity_id}")

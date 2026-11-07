@@ -1,0 +1,8 @@
+{
+  "issues": {
+    "no_assist_pipeline": {
+      "title": "No Assist pipeline uses the TTS Broadcast agent",
+      "description": "Create an Assist pipeline whose conversation agent is TTS Broadcast so the TALK button on the dashboard card works. Go to Settings > Voice assistants > Add assistant and choose conversation agent \"TTS Broadcast\"."
+    }
+  }
+}
