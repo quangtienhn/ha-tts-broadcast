@@ -88,8 +88,17 @@ async def test_speak_response_shape(hass: HomeAssistant, setup_entry) -> None:
     )
     await hass.async_block_till_done()
 
-    assert set(result) == {"played", "skipped", "failed", "errors"}
+    assert set(result) == {
+        "played",
+        "skipped",
+        "failed",
+        "errors",
+        "targeted",
+        "unexpected_started",
+    }
     assert result["errors"] == {}
+    assert result["targeted"] == ["media_player.speaker_one"]
+    assert result["unexpected_started"] == []
 
 
 async def test_speak_cache_flag(hass: HomeAssistant, setup_entry) -> None:
