@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an idea or enhancement for TTS Broadcast
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea for TTS Broadcast? Tell us about it.
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What are you trying to do?
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: 2026.11
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: TTS Broadcast integration version
+      placeholder: 1.2.0
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      required: false

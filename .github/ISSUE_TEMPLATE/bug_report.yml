@@ -1,0 +1,67 @@
+name: Bug report
+description: File a bug report for TTS Broadcast
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please fill out as much as you can.
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      description: e.g. 2026.11
+      placeholder: 2026.11
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: TTS Broadcast integration version
+      description: e.g. 1.2.0
+      placeholder: 1.2.0
+      required: true
+  - type: input
+    id: trigger_path
+    attributes:
+      label: Trigger path
+      description: Speak button, tts_broadcast.speak service, Assist agent, voice, or other
+      placeholder: Assist agent
+      required: true
+  - type: input
+    id: pipeline_agent
+    attributes:
+      label: Assist pipeline conversation agent
+      description: The conversation agent used by the pipeline (e.g. TTS Broadcast)
+      placeholder: TTS Broadcast
+      required: true
+  - type: textarea
+    id: debug_output
+    attributes:
+      label: Output of tts_broadcast.debug_selection
+      description: Call the service from Developer Tools and paste the result (no message text)
+      placeholder: |
+        {"speakers": [...], "resolved": [...], ...}
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics download
+      description: Download diagnostics for the TTS Broadcast config entry and attach or summarize
+      required: false
+  - type: textarea
+    id: log_lines
+    attributes:
+      label: Relevant log lines
+      description: Integration log lines around the event. Do NOT include message text.
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      required: true
