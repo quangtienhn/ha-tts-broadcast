@@ -6,7 +6,7 @@
 - `ruff format --check .`
 - `pytest tests`
 
-## Manual checklist (real Home Assistant, v1.1.3)
+## Manual checklist (real Home Assistant, v1.2.0)
 
 - (a) Configure -> Voice phrases -> change a phrase -> Submit works and the entry reloads.
 - (b) Set a fallback agent, then clear it, and confirm it is really cleared.
@@ -14,6 +14,9 @@
 - (d) "thông báo" alone gets a spoken request for content, never "missing_content".
 - (e) With `reply_text` set and no speaker selected, the assistant does NOT claim it sent.
 - (f) After changing options, the card is still in the card picker without restarting HA.
+- (g) Card TALK row: with `assist_pipeline_id: auto`, the card finds the pipeline whose
+  conversation agent is TTS Broadcast; with no such pipeline, the TALK row is hidden and
+  an info line is shown; an explicit pipeline id is honored.
 
 ## Extra speakers play — runbook
 

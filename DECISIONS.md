@@ -79,3 +79,15 @@
 - Wyoming TTS language handling: language is optional and empty by default.
 - Sentence triggers with an LLM conversation agent may require "Prefer handling commands locally"; unverified.
 - Frontend visual editor support for the `assist_pipeline` selector used by the TTS Broadcast card is unverified locally; backend selector registration was verified in HA source.
+
+## Playback mode (v1.2.0)
+- Since 1.1.2 the integration calls `tts.speak` once PER speaker, concurrently, so one failing speaker never blocks the others. Trade-off: TTS is synthesized N times and speakers may start slightly out of sync.
+- A `single_call` mode (one `tts.speak` with the full list, synchronized starts, one failure marks the batch) was considered.
+- Verified in HA 2026.10.4 source: `tts.speak` accepts `media_player_entity_id` as a list (`cv.comp_entity_ids`) and turns it into a single `media_player.play_media` call. Failure semantics for multiple targets in one call are not documented to isolate other targets.
+- Decision: `single_call` NOT implemented in v1.2.0. Per-speaker isolation is more valuable for announcements than perfect sync, and the async-synthesis cost is acceptable. Documented the trade-off in the README. A future PR can add `playback_mode` with tests.
+
+## Compatibility / minimum HA version (v1.2.0)
+- `probatio` is a direct dependency of homeassistant 2026.10.4 (`Requires-Dist: probatio==0.13.0`), so importing it is using a shipped HA-core dependency, not an external network call.
+- `async_converse`, `ConversationEntity`, `ConversationResult`, `ConversationInput` are all public exports of `homeassistant.components.conversation` in the installed 2026.10.4 source (2026.11 line). No internal conversation paths are used.
+- Code uses Python 3.12+ syntax (`type TTSBroadcastConfigEntry = ConfigEntry[...]`), which requires HA >= 2024.12.
+- Minimum HA declared: 2025.1. Runtime verification was performed on HA 2026.10.4 (2026.11 line); versions 2025.1–2026.10 are assumed compatible based on API stability but NOT directly tested.
