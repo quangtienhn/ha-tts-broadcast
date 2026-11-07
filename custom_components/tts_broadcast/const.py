@@ -14,7 +14,7 @@ CONF_OPTIONS = "options"
 
 DEFAULT_VOLUME = 50
 DEFAULT_TITLE = "TTS Broadcast"
-VERSION = "1.1.3"
+VERSION = "1.2.0"
 
 CONF_STRIP_PHRASES = "strip_phrases"
 CONF_KEEP_PHRASES = "keep_phrases"
@@ -22,6 +22,7 @@ CONF_REQUIRE_PHRASE = "require_phrase"
 CONF_FALLBACK_AGENT = "fallback_agent"
 CONF_ACCENT_INSENSITIVE = "accent_insensitive"
 CONF_REPLY_TEXT = "reply_text"
+CONF_AUDIT_ALL_MEDIA_PLAYERS = "audit_all_media_players"
 
 DEFAULT_STRIP_PHRASES = ["thông báo"]
 DEFAULT_KEEP_PHRASES: list[str] = []
@@ -41,3 +42,7 @@ ATTR_SKIPPED = "skipped"
 ATTR_FAILED = "failed"
 ATTR_TARGETED = "targeted"
 ATTR_UNEXPECTED_STARTED = "unexpected_started"
+ATTR_AUDIT = "audit"
+
+AUDIT_WINDOW_SECONDS = 20
+AUDIT_STORE_MAX = 5

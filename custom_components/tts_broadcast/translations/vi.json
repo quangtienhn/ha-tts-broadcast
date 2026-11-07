@@ -153,6 +153,14 @@
         "options": {
           "name": "Tùy chọn",
           "description": "Tùy chọn truyền cho TTS."
+        },
+        "cache": {
+          "name": "Bộ nhớ đệm",
+          "description": "Tùy chọn. Truyền qua tts.speak để sử dụng bộ nhớ đệm TTS."
+        },
+        "audit": {
+          "name": "Kiểm tra",
+          "description": "Tùy chọn. Chờ tối đa 20 s và báo cáo bất kỳ loa nào bắt đầu phát ngang hàng."
         }
       }
     },
@@ -175,6 +183,11 @@
           "description": "Tạo thông báo chứa YAML."
         }
       }
+    },
+    "debug_selection": {
+      "name": "Gỡ lỗi chọn loa",
+      "description": "Báo cáo trạng thái chọn loa, danh sách đã giải quyết, phân nhóm và kiểm tra lần thông báo gần nhất (không tác dụng phụ, không phát thanh).",
+      "fields": {}
     }
   },
   "exceptions": {

@@ -40,6 +40,18 @@ speak:
       required: false
       selector:
         object:
+    cache:
+      name: Cache
+      description: Optional. Passed through to tts.speak to use the TTS cache.
+      required: false
+      selector:
+        boolean:
+    audit:
+      name: Audit
+      description: Optional. Wait up to 20 s and report any media players that started playing unexpectedly.
+      required: false
+      selector:
+        boolean:
 get_dashboard_card:
   name: Get dashboard card
   description: Return a YAML snippet for a stock entities card.
@@ -62,3 +74,7 @@ stop:
         entity:
           domain: media_player
           multiple: true
+debug_selection:
+  name: Debug speaker selection
+  description: Report speaker selection state, resolved list, grouping and the last announcement audit (no side effects, no speech).
+  fields: {}

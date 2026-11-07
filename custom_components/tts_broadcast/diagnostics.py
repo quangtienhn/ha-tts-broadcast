@@ -24,4 +24,9 @@ async def async_get_config_entry_diagnostics(
         "volume": config.get("volume"),
         "language": config.get("language"),
         "last_result": runtime_data.last_result if runtime_data else None,
+        "audit_store": {
+            cid: details for cid, details in list(runtime_data.audit_store.items())[-5:]
+        }
+        if runtime_data
+        else None,
     }

@@ -153,6 +153,14 @@
         "options": {
           "name": "Options",
           "description": "Optional options passed through to the TTS engine."
+        },
+        "cache": {
+          "name": "Cache",
+          "description": "Optional. Passed through to tts.speak to use the TTS cache."
+        },
+        "audit": {
+          "name": "Audit",
+          "description": "Optional. Wait up to 20 s and report any media players that started playing unexpectedly."
         }
       }
     },
@@ -175,6 +183,11 @@
           "description": "Create a persistent notification containing the YAML."
         }
       }
+    },
+    "debug_selection": {
+      "name": "Debug speaker selection",
+      "description": "Report speaker selection state, resolved list, grouping and the last announcement audit (no side effects, no speech).",
+      "fields": {}
     }
   },
   "exceptions": {

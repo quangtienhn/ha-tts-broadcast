@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
@@ -24,15 +25,8 @@ from homeassistant.helpers.issue_registry import (
 )
 from homeassistant.util import dt as dt_util
 
-try:
-    from homeassistant.components.assist_pipeline import async_get_pipelines
-
-    _HASS_HAS_ASSIST_PIPELINE_LIST = True
-except Exception:  # pragma: no cover - assist_pipeline not available
-    async_get_pipelines = None  # type: ignore[assignment]
-    _HASS_HAS_ASSIST_PIPELINE_LIST = False
-
 from .const import (
+    ATTR_AUDIT,
     ATTR_FAILED,
     ATTR_LANGUAGE,
     ATTR_MESSAGE,
@@ -43,6 +37,9 @@ from .const import (
     ATTR_TARGETED,
     ATTR_UNEXPECTED_STARTED,
     ATTR_VOLUME,
+    AUDIT_STORE_MAX,
+    AUDIT_WINDOW_SECONDS,
+    CONF_AUDIT_ALL_MEDIA_PLAYERS,
     CONF_LANGUAGE,
     CONF_NO_VOLUME_SPEAKERS,
     CONF_OPTIONS,
@@ -74,7 +71,9 @@ class TTSBroadcastRuntimeData:
     lock: asyncio.Lock
     speakers: list[str] = field(default_factory=list)
     switch_entity_ids: dict[str, str] = field(default_factory=dict)
+    volume: float | None = None
     last_result: dict[str, Any] | None = None
+    audit_store: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
 
 
 type TTSBroadcastConfigEntry = ConfigEntry[TTSBroadcastRuntimeData]
@@ -156,6 +155,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 probatio.Optional(ATTR_LANGUAGE): cv.string,
                 probatio.Optional(ATTR_OPTIONS): dict,
                 probatio.Optional("cache"): cv.boolean,
+                probatio.Optional(ATTR_AUDIT): cv.boolean,
             }
         ),
         supports_response=SupportsResponse.OPTIONAL,
@@ -268,6 +268,10 @@ async def _async_debug_selection(
         "skipped": skipped,
         "grouping": grouping,
         "last_result": entry.runtime_data.last_result,
+        "audit_store": {
+            cid: details
+            for cid, details in list(entry.runtime_data.audit_store.items())[-5:]
+        },
     }
 
 
@@ -477,6 +481,8 @@ async def async_announce(
     options: Any = None,
     cache: bool = False,
     context: Context | None = None,
+    audit: bool = False,
+    audit_event: asyncio.Event | None = None,
 ) -> dict[str, Any]:
     config = _config(entry)
     message = message.strip()
@@ -601,6 +607,7 @@ async def async_announce(
             ATTR_FAILED: failed,
             ATTR_TARGETED: resolved,
             ATTR_UNEXPECTED_STARTED: [],
+            "context_id": context.id,
             "errors": errors,
         }
         entry.runtime_data.last_result = {
@@ -633,9 +640,17 @@ async def async_announce(
         )
 
         async def _audit_unexpected() -> None:
-            unexpected: list[str] = []
+            unexpected: list[dict[str, Any]] = []
+            seen: set[str] = set()
+
+            entity_ids = (
+                hass.states.async_entity_ids("media_player")
+                if config.get(CONF_AUDIT_ALL_MEDIA_PLAYERS)
+                else resolved
+            )
 
             def _listener(event) -> None:
+                old_state = event.data.get("old_state")
                 new_state = event.data.get("new_state")
                 if new_state is None:
                     return
@@ -644,25 +659,49 @@ async def async_announce(
                 entity_id = new_state.entity_id or ""
                 if not entity_id.startswith("media_player."):
                     return
-                if entity_id not in resolved:
-                    unexpected.append(entity_id)
+                if entity_id in resolved or entity_id in seen:
+                    return
+                seen.add(entity_id)
+                ctx = new_state.context
+                started_by_us = bool(
+                    ctx and (ctx.id == context.id or ctx.parent_id == context.id)
+                )
+                unexpected.append(
+                    {
+                        "entity_id": entity_id,
+                        "from_state": old_state.state if old_state else None,
+                        "to_state": new_state.state,
+                        "context_id": ctx.id if ctx else None,
+                        "parent_id": ctx.parent_id if ctx else None,
+                        "user_id": ctx.user_id if ctx else None,
+                        "started_by_us": started_by_us,
+                    }
+                )
 
-            unsub = async_track_state_change_event(
-                hass,
-                hass.states.async_entity_ids("media_player"),
-                _listener,
-            )
+            unsub = async_track_state_change_event(hass, entity_ids, _listener)
             try:
-                await asyncio.sleep(20)
+                await asyncio.sleep(AUDIT_WINDOW_SECONDS)
             finally:
                 unsub()
-            entry.runtime_data.last_result["unexpected_started"] = unexpected
-            for entity_id in unexpected:
-                _LOGGER.warning(
-                    "tts_broadcast unexpected player started %s context=%s",
-                    entity_id,
-                    context.id,
+            entry.runtime_data.audit_store[context.id] = unexpected
+            while len(entry.runtime_data.audit_store) > AUDIT_STORE_MAX:
+                entry.runtime_data.audit_store.pop(
+                    next(iter(entry.runtime_data.audit_store))
                 )
+            for detail in unexpected:
+                _LOGGER.warning(
+                    "tts_broadcast unexpected player started %s "
+                    "from=%s to=%s context=%s parent=%s user=%s started_by_us=%s",
+                    detail["entity_id"],
+                    detail["from_state"],
+                    detail["to_state"],
+                    detail["context_id"],
+                    detail["parent_id"],
+                    detail["user_id"],
+                    detail["started_by_us"],
+                )
+            if audit_event is not None:
+                audit_event.set()
 
         entry.async_create_background_task(
             hass, _audit_unexpected(), "tts_broadcast_audit"
@@ -685,6 +724,31 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
         )
     requested = call.data.get(ATTR_SPEAKERS)
     requested_list = _coerce_speakers(requested) if requested is not None else None
+    audit = call.data.get(ATTR_AUDIT) or False
+    if audit:
+        audit_event = asyncio.Event()
+        result = await async_announce(
+            hass,
+            entry,
+            message,
+            speakers=requested_list,
+            volume=call.data.get(ATTR_VOLUME),
+            language=call.data.get(ATTR_LANGUAGE),
+            options=call.data.get(ATTR_OPTIONS),
+            cache=call.data.get("cache") or False,
+            context=call.context,
+            audit=True,
+            audit_event=audit_event,
+        )
+        # Wait for the audit window so the response carries real details.
+        with contextlib.suppress(TimeoutError):  # pragma: no cover - window elapsed
+            await asyncio.wait_for(audit_event.wait(), timeout=AUDIT_WINDOW_SECONDS)
+        context_id = result.get("context_id")
+        if context_id:
+            result[ATTR_UNEXPECTED_STARTED] = entry.runtime_data.audit_store.get(
+                context_id, []
+            )
+        return result
     return await async_announce(
         hass,
         entry,
@@ -695,6 +759,7 @@ async def _async_speak(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]
         options=call.data.get(ATTR_OPTIONS),
         cache=call.data.get("cache") or False,
         context=call.context,
+        audit=False,
     )
 
 
@@ -779,12 +844,15 @@ def _find_assist_pipeline_id(
 ) -> str | None | object:
     """Return the id of an Assist pipeline that uses our conversation agent.
 
-    Uses the public ``async_get_pipelines`` API. Returns the id when exactly one
+    Uses the public ``async_get_pipelines`` API (lazily imported so
+    ``assist_pipeline`` is not a hard dependency). Returns the id when exactly one
     pipeline uses our conversation entity, ``None`` when none does, or the
     ``_ASSIST_PIPELINE_UNAVAILABLE`` sentinel when the check could not be run
     (assist_pipeline not set up, or our conversation entity missing).
     """
-    if not _HASS_HAS_ASSIST_PIPELINE_LIST:
+    try:
+        from homeassistant.components.assist_pipeline import async_get_pipelines
+    except Exception:  # pragma: no cover - assist_pipeline not available
         return _ASSIST_PIPELINE_UNAVAILABLE
     our_entity = _own_conversation_entity_id(hass, entry)
     if not our_entity:
