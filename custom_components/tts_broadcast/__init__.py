@@ -218,7 +218,7 @@ async def _async_debug_selection(
                 "state": state.state if state else None,
                 "group_members": (
                     list(group_members)
-                    if isinstance(group_members, (list, tuple, set))
+                    if isinstance(group_members, list | tuple | set)
                     else group_members
                 ),
                 "sync_group": attrs.get("sync_group"),
@@ -240,7 +240,7 @@ async def _async_debug_selection(
         st = hass.states.get(ent.entity_id)
         attrs = dict(st.attributes) if st else {}
         members = attrs.get("group_members") or []
-        if isinstance(members, (list, tuple, set)):
+        if isinstance(members, list | tuple | set):
             for m in members:
                 if m in configured and m != ent.entity_id:
                     grouping.append({"media_player": ent.entity_id, "lists_speaker": m})
