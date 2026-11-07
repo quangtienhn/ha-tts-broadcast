@@ -67,7 +67,13 @@
 - TTS entity source: installed HA 2026.11.0 `homeassistant/components/tts/entity.py` (`async_speak`)
 - Conversation trigger source: installed HA 2026.11.0 `homeassistant/components/conversation/trigger.py`
 
-## Uncertainties
+## Investigation: extra speakers play (v1.1.3)
+- Hypothesis 1 (external trigger: old YAML package / another automation / second sentence trigger): cannot be decided from code. User must check Logbook + automations.
+- Hypothesis 2 (more switches ON than seen: restored/stale/duplicate switches): PARTIALLY eliminated. Characterization test `test_restart_simulation_restore_state` confirms exactly one ON switch -> exactly one tts.speak call. Stale/duplicate switches are now warned via registry hygiene check in `async_setup_entry` (no auto-delete).
+- Hypothesis 3 (selected media player fans out via group/sync/multi-room): cannot be decided from code; depends on the speaker device.
+- Hypothesis 4 (real bug in this integration: stale switch mapping, registry-scan collision, wrong speaker list): ELIMINATED in clean test environment. Six characterization tests confirm exactly one switch ON -> exactly one `tts.speak` call with that single speaker; explicit `speakers` arg respected; unavailable speaker skipped; select-all/select-none/one-ON correct.
+- Hypothesis 5 (device/network replays shared media URL): cannot be decided from code.
+- Conclusion: no bug found in this integration. Observability added (dedicated Context per announcement, 20s state-change audit listener, `targeted`/`unexpected_started` in response and diagnostics, `tts_broadcast.debug_selection` service) so the user can distinguish integration-targeted vs external playback.
 - `media_player.media_stop` interruption on ESPHome announcement pipelines is unverified.
 - Tapo speaker compatibility is unknown; configured as no-volume speaker.
 - Wyoming TTS language handling: language is optional and empty by default.
