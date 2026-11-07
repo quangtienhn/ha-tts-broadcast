@@ -90,4 +90,4 @@
 - `probatio` is a direct dependency of homeassistant 2026.10.4 (`Requires-Dist: probatio==0.13.0`), so importing it is using a shipped HA-core dependency, not an external network call.
 - `async_converse`, `ConversationEntity`, `ConversationResult`, `ConversationInput` are all public exports of `homeassistant.components.conversation` in the installed 2026.10.4 source (2026.11 line). No internal conversation paths are used.
 - Code uses Python 3.12+ syntax (`type TTSBroadcastConfigEntry = ConfigEntry[...]`), which requires HA >= 2024.12.
-- Minimum HA declared: 2025.1. Runtime verification was performed on HA 2026.10.4 (2026.11 line); versions 2025.1–2026.10 are assumed compatible based on API stability but NOT directly tested.
+- Minimum HA declared: 2026.11.0. Runtime verification was performed on HA 2026.10.4 source and the 2026.11.0 tag; older releases were not verified locally, so no claim is made for versions before 2026.11.0.

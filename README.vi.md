@@ -32,7 +32,7 @@ TTS Broadcast giúp bạn phát một thông báo trên nhiều loa cùng một 
 
 ## Yêu cầu
 
-- Home Assistant **2025.1 trở lên** (kiểm tra thời gian chạy thực trên HA 2026.10.4, dòng 2026.11).
+- Home Assistant **2026.11.0 trở lên** (kiểm tra thời gian chạy thực trên nguồn HA 2026.10.4 / 2026.11; các phiên bản cũ hơn chưa được kiểm tra cục bộ).
 - Một TTS entity (ví dụ `tts.wyoming_vietnamese`).
 - Các loa `media_player` có thể phát TTS.
 - Tùy chọn: một engine STT để kích hoạt bằng giọng nói qua Assist.
@@ -219,7 +219,7 @@ vẽ và một dòng thông báo bản địa hóa sẽ hiển thị thay thế.
 | Pipeline Assist với TTS/STT cục bộ Wyoming | Đã kiểm tra trên HA 2026.10.4 của tác giả |
 | Hành vi loa Tapo | Chưa kiểm tra |
 | Các engine TTS khác | Chưa kiểm tra |
-| Các phiên bản HA khác | Chưa kiểm tra (khai báo tối thiểu 2025.1, giả định tương thích nhưng chưa kiểm tra trực tiếp) |
+| Các phiên bản HA khác | Chưa kiểm tra (khai báo tối thiểu 2026.11.0) |
 | Ngắt phát thông báo ESPHome qua `media_stop` | Chưa kiểm tra |
 | Trình chỉnh sửa giao diện frontend `assist_pipeline` | Chưa kiểm tra trực tiếp (backend đã xác thực) |
 

@@ -44,8 +44,8 @@ switched on, set a shared volume, and speak or type the message through Assist.
 
 ## Requirements
 
-- Home Assistant **2025.1 or newer** (runtime verification was performed on
-  HA 2026.10.4, the 2026.11 line).
+- Home Assistant **2026.11.0 or newer** (runtime verification was performed on
+  HA 2026.10.4 / 2026.11 source; older releases were not verified locally).
 - A TTS entity (e.g. `tts.wyoming_vietnamese`).
 - `media_player` speakers that can play TTS.
 - Optional: an STT engine for voice trigger through Assist.
@@ -240,7 +240,7 @@ localized info line is shown instead.
 | Assist pipeline with a local Wyoming TTS/STT | Verified on the author's HA 2026.10.4 |
 | Tapo speaker behavior | Not tested |
 | Other TTS engines | Not tested |
-| Other HA versions | Not tested (minimum declared 2025.1, assumed compatible) |
+| Other HA versions | Not tested (minimum declared 2026.11.0) |
 | ESPHome announcement interruption via `media_stop` | Not tested |
 | Frontend visual editor `assist_pipeline` selector | Not tested locally (backend verified) |
 
