@@ -95,6 +95,7 @@ async def test_speak_response_shape(hass: HomeAssistant, setup_entry) -> None:
         "errors",
         "targeted",
         "unexpected_started",
+        "context_id",
     }
     assert result["errors"] == {}
     assert result["targeted"] == ["media_player.speaker_one"]
