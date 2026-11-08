@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -396,3 +397,56 @@ async def test_audit_true_does_not_hold_announce_lock(
     with contextlib.suppress(asyncio.CancelledError):
         await task1
     await hass.async_block_till_done()
+
+
+async def test_audit_default_detects_non_targeted_configured_speaker(
+    hass: HomeAssistant, setup_entry
+) -> None:
+    """Default audit (no audit_all_media_players) must detect a configured
+    speaker that starts playing but was not targeted.
+
+    setup_entry: speaker_one ON (resolved/targeted), speaker_two OFF
+    (configured but not resolved). speaker_two starting to play with a
+    foreign context during the audit window must appear in
+    unexpected_started.
+    """
+
+    async_mock_service(hass, "tts", "speak")
+    async_mock_service(hass, "media_player", "volume_set")
+
+    audit_sleep_started = asyncio.Event()
+    original_sleep = asyncio.sleep
+
+    async def patched_sleep(delay, *args, **kwargs):
+        audit_sleep_started.set()
+        await original_sleep(0.05)
+
+    with (
+        patch("custom_components.tts_broadcast.__init__.asyncio.sleep", patched_sleep),
+        patch("custom_components.tts_broadcast.__init__.AUDIT_WINDOW_SECONDS", 0.05),
+    ):
+        task1 = hass.async_create_task(
+            hass.services.async_call(
+                DOMAIN,
+                "speak",
+                {"message": "hello", "audit": True},
+                blocking=True,
+                return_response=True,
+            )
+        )
+        # Wait until the audit task has registered its state listener
+        # (it is inside the patched sleep).
+        await asyncio.wait_for(audit_sleep_started.wait(), timeout=5)
+
+        # The non-targeted configured speaker (speaker_two) starts playing
+        # with a foreign context during the audit window.
+        hass.states.async_set("media_player.speaker_two", "playing")
+        await hass.async_block_till_done()
+
+        result1 = await task1
+        await hass.async_block_till_done()
+
+    unexpected = result1["unexpected_started"]
+    assert len(unexpected) == 1, unexpected
+    assert unexpected[0]["entity_id"] == "media_player.speaker_two"
+    assert unexpected[0]["started_by_us"] is False

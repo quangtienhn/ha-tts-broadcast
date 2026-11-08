@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -76,6 +77,7 @@ class TTSBroadcastRuntimeData:
     volume: float | None = None
     last_result: dict[str, Any] | None = None
     audit_store: dict[str, list[dict[str, Any]]] = field(default_factory=dict)
+    pipeline_listener_unsub: Callable[[], None] | None = None
 
 
 type TTSBroadcastConfigEntry = ConfigEntry[TTSBroadcastRuntimeData]
@@ -373,6 +375,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Repairs issue: warn when no Assist pipeline uses our conversation agent.
     _async_update_assist_pipeline_issue(hass, entry)
 
+    # Re-evaluate the repairs issue when the pipeline store changes
+    # (e.g. the user creates or removes a pipeline after setup).
+    try:
+        from homeassistant.components import assist_pipeline
+    except Exception:  # pragma: no cover - assist_pipeline not available
+        assist_pipeline = None
+    if assist_pipeline is not None:
+        pipeline_data = hass.data.get(assist_pipeline.DOMAIN)
+        if pipeline_data is not None:
+            entry.runtime_data.pipeline_listener_unsub = (
+                pipeline_data.pipeline_store.async_add_listener(
+                    lambda change_type, item_id, updated_config: (
+                        _async_update_assist_pipeline_issue(hass, entry)
+                    )
+                )
+            )
+
     return True
 
 
@@ -416,6 +435,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN]["entries"].pop(entry.entry_id, None)
+        async_delete_issue(hass, DOMAIN, "no_assist_pipeline")
+        unsub = entry.runtime_data.pipeline_listener_unsub
+        if unsub is not None:
+            unsub()
     return unload_ok
 
 
@@ -657,11 +680,14 @@ async def async_announce(
             unexpected: list[dict[str, Any]] = []
             seen: set[str] = set()
 
-            entity_ids = (
-                hass.states.async_entity_ids("media_player")
-                if config.get(CONF_AUDIT_ALL_MEDIA_PLAYERS)
-                else resolved
-            )
+            configured = _coerce_speakers(config.get(CONF_SPEAKERS))
+            if config.get(CONF_AUDIT_ALL_MEDIA_PLAYERS):
+                entity_ids = hass.states.async_entity_ids("media_player")
+            else:
+                # Default: watch the configured speakers that were NOT resolved
+                # (off or unavailable), so a speaker that starts playing without
+                # being targeted is flagged as unexpected.
+                entity_ids = [s for s in configured if s not in resolved]
 
             def _listener(event) -> None:
                 old_state = event.data.get("old_state")
@@ -840,12 +866,18 @@ _ASSIST_BUTTON_NAMES = {"en": "TALK", "vi": "NÓI"}
 _ASSIST_BUTTON_ICON = "mdi:microphone"
 
 
-def _assist_button_name(config: dict[str, Any]) -> str:
-    """Return the localized Assist row name."""
+def _assist_button_name(config: dict[str, Any], hass_language: str) -> str:
+    """Return the localized Assist row name.
+
+    Uses the HA UI language (not the TTS language option) as the default so the
+    button label matches the UI the user sees. Falls back to an explicit
+    ``assist_name`` override when set.
+    """
     if config.get("assist_name"):
         return config.get("assist_name")
-    lang = str(config.get("language") or "en").split("-")[0]
-    return _ASSIST_BUTTON_NAMES.get(lang, _ASSIST_BUTTON_NAMES["en"])
+    return _ASSIST_BUTTON_NAMES.get(
+        str(hass_language or "en").split("-")[0], _ASSIST_BUTTON_NAMES["en"]
+    )
 
 
 def _assist_button_icon(config: dict[str, Any]) -> str:
@@ -878,7 +910,9 @@ def _find_assist_pipeline_id(
     ours = [
         p for p in pipelines if getattr(p, "conversation_engine", None) == our_entity
     ]
-    if len(ours) == 1:
+    if ours:
+        # One or more pipelines use our agent. Use the first one; having several
+        # is not an error (the card picks the first by name).
         return ours[0].id
     return None
 
@@ -951,7 +985,9 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
     if speak is not None:
         lines.append(f"  - {speak.entity_id}")
     lines.append("  - type: button")
-    lines.append(f"    name: {_assist_button_name(_config(entry))}")
+    lines.append(
+        f"    name: {_assist_button_name(_config(entry), hass.config.language)}"
+    )
     lines.append(f"    icon: {_assist_button_icon(_config(entry))}")
     lines.append("    tap_action:")
     lines.append("      action: assist")
@@ -965,7 +1001,7 @@ def _build_dashboard_card_yaml(hass: HomeAssistant, entry: ConfigEntry) -> str:
             "      # Create one: Settings > Voice assistants > Add assistant >"
         )
         lines.append("      # Conversation agent: TTS Broadcast.")
-        lines.append("      # Or set pipeline_id explicitly (e.g. 'preferred').")
+        lines.append("      # Or set pipeline_id explicitly (e.g. 'auto').")
     lines.append("      start_listening: true")
     if stop is not None:
         lines.append(f"  - {stop.entity_id}")
