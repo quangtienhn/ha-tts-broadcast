@@ -148,19 +148,41 @@ class TTSBroadcastCard extends HTMLElement {
     const selectAll = entities.find((e) => e.translation_key === "select_all");
     const selectNone = entities.find((e) => e.translation_key === "select_none");
 
+    // Strip the device-name prefix ("TTS Broadcast ") that recent HA versions
+    // prepend to friendly names of entities with has_entity_name = True.
+    const deviceNames = new Set(["TTS Broadcast"]);
+    entities.forEach((e) => {
+      const dn =
+        this._hass.devices &&
+        this._hass.devices[e.device_id] &&
+        this._hass.devices[e.device_id].name;
+      if (dn) deviceNames.add(dn);
+    });
+    const row = (e) => {
+      const st = this._hass.states[e.entity_id];
+      const fn = st && st.attributes && st.attributes.friendly_name;
+      if (!fn) return e.entity_id;
+      for (const d of deviceNames) {
+        if (fn.startsWith(d + " ")) {
+          return { entity: e.entity_id, name: fn.slice(d.length + 1) };
+        }
+      }
+      return e.entity_id;
+    };
+
     const rows = [];
-    switches.forEach((e) => rows.push(e.entity_id));
+    switches.forEach((e) => rows.push(row(e)));
 
     const showVolume = this._config.show_volume !== false && volume;
     const showMessage = this._config.show_message !== false && message;
     if (showVolume || showMessage) {
       rows.push({ type: "divider" });
-      if (showVolume) rows.push(volume.entity_id);
-      if (showMessage) rows.push(message.entity_id);
+      if (showVolume) rows.push(row(volume));
+      if (showMessage) rows.push(row(message));
     }
 
     rows.push({ type: "divider" });
-    if (speak) rows.push(speak.entity_id);
+    if (speak) rows.push(row(speak));
 
     if (this._config.show_assist !== false) {
       const assistPipeline = await this._resolveAssistPipeline(s);
@@ -191,10 +213,10 @@ class TTSBroadcastCard extends HTMLElement {
       }
     }
 
-    if (stop) rows.push(stop.entity_id);
+    if (stop) rows.push(row(stop));
     if (this._config.show_select_buttons !== false) {
-      if (selectAll) rows.push(selectAll.entity_id);
-      if (selectNone) rows.push(selectNone.entity_id);
+      if (selectAll) rows.push(row(selectAll));
+      if (selectNone) rows.push(row(selectNone));
     }
 
     const cardConfig = {

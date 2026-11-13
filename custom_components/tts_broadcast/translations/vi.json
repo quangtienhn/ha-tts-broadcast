@@ -19,7 +19,7 @@
           "tts_entity": "TTS entity",
           "speakers": "Loa",
           "no_volume_speakers": "Loa không có điều khiển âm lượng",
-          "volume": "Âm lượng mặc định",
+          "volume": "Âm lượng ban đầu",
           "language": "Ngôn ngữ",
           "options": "Tùy chọn",
           "strip_phrases": "Cụm từ bỏ đi",

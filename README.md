@@ -55,8 +55,7 @@ switched on, set a shared volume, and speak or type the message through Assist.
 ### Manual (works now; repository is private)
 
 1. Copy `custom_components/tts_broadcast` into
-   `config/custom_components/tts_broadcast`, or unzip
-   `dist/tts_broadcast.zip` into `config/custom_components/`.
+   `config/custom_components/tts_broadcast`.
 2. Restart Home Assistant.
 3. Add the integration from Settings -> Devices & Services.
 
@@ -85,18 +84,24 @@ Everything is configured from the UI (Settings -> Devices & Services -> TTS Broa
 | Fallback agent | Assist agent used when no phrase matches | another conversation agent |
 | Accent insensitive | Ignore Vietnamese diacritics when matching | enabled |
 | Reply text | Short confirmation returned to Assist | `Đã gửi` |
-| Playback mode | `per_speaker` (default) or `single_call` | `per_speaker` |
-| Audit all media players | Observe every media player during the audit window | disabled |
 
 Phrase examples: strip `thông báo` so "thông báo, cơm chín rồi" speaks only
 "cơm chín rồi"; keep `xin chào` so "xin chào mọi người xuống ăn cơm" is spoken
 whole.
+
+The **Voice phrases** step of the options flow:
+
+![Voice phrases options step: strip phrases, keep phrases, require phrase, fallback agent, accent insensitive](./docs/images/voice-phrases.png)
 
 ## Entities and services
 
 One device "TTS Broadcast" with one switch per speaker, one shared volume number,
 one message text, Speak/Stop/Select all/Select none buttons, and one conversation
 agent.
+
+Each announcement calls `tts.speak` once per selected speaker, in parallel: the TTS
+engine synthesizes once per speaker (a little extra work) but a failing speaker never
+blocks the others, and speakers may start a few milliseconds apart.
 
 ### `tts_broadcast.speak`
 
@@ -162,6 +167,8 @@ satellites — so every speaker plays, not just the ones you switched on.
 4. Save the pipeline. Do **not** make it the default pipeline.
 5. Note its pipeline id.
 
+![Assist pipeline setup: conversation agent set to TTS Broadcast, with the STT and TTS engines](./docs/images/assist-pipeline-setup.png)
+
 In the dashboard card, set `assist_pipeline_id` to that id. Or leave it as
 `auto` (the default): the card finds the pipeline whose conversation agent is the
 TTS Broadcast agent automatically.
@@ -173,6 +180,10 @@ line tells you to create one.
 
 Add card -> TTS Broadcast. The card discovers the integration's entities
 automatically.
+
+![TTS Broadcast dashboard card: per-speaker switches, message box, select all/none, Speak, Stop and volume](./docs/images/dashboard-card.png)
+
+Speaker names in the screenshot are placeholders.
 
 Card options (all optional):
 
@@ -262,6 +273,7 @@ pytest tests
 ```
 
 See `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, and
-`PUBLISH_CHECKLIST.md`. Screenshots to add are listed in `docs/images/README.md`.
+`PUBLISH_CHECKLIST.md`. The screenshots used in this README are listed in
+`docs/images/README.md`.
 
 License: MIT. See `LICENSE`.

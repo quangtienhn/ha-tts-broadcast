@@ -19,7 +19,7 @@
           "tts_entity": "TTS entity",
           "speakers": "Speakers",
           "no_volume_speakers": "Speakers without volume control",
-          "volume": "Default volume",
+          "volume": "Initial volume",
           "language": "Language",
           "options": "Options",
           "strip_phrases": "Strip phrases",

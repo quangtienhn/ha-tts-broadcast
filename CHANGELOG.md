@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/,
 and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+### Added
+- Dashboard card, Assist pipeline setup and Voice phrases screenshots in
+  `docs/images/`, referenced from both READMEs.
+
+### Fixed
+- README no longer lists the unimplemented `playback_mode` and
+  `audit_all_media_players` options; manual install no longer references the
+  gitignored `dist/tts_broadcast.zip`.
+- Card: entity rows drop the `TTS Broadcast` device prefix, so speakers display
+  as configured (`Loa Gara` instead of `TTS Broadcast Loa Gara`). Display-only;
+  entity ids, registry names and services are unchanged.
 
 ## [1.2.1]
 ### Fixed
