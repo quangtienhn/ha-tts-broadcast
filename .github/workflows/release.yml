@@ -41,7 +41,7 @@ jobs:
           import os, re, pathlib
           tag = os.environ["GITHUB_REF_NAME"].removeprefix("v")
           text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
-          pattern = re.compile(rf"^## \[{re.escape(tag)}\]\b.*?$(?=^## \[|$)", re.M | re.S)
+          pattern = re.compile(rf"^## \[{re.escape(tag)}\].*?(?=^## \[|\Z)", re.M | re.S)
           m = pattern.search(text)
           body = m.group(0).strip() if m else f"Release {tag}"
           pathlib.Path("release_body.md").write_text(body, encoding="utf-8")

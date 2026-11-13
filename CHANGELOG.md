@@ -6,20 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/,
 and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+
+## [1.2.1]
 ### Added
 - Dashboard card, Assist pipeline setup and Voice phrases screenshots in
   `docs/images/`, referenced from both READMEs.
 
 ### Fixed
-- README no longer lists the unimplemented `playback_mode` and
-  `audit_all_media_players` options; manual install no longer references the
-  gitignored `dist/tts_broadcast.zip`.
 - Card: entity rows drop the `TTS Broadcast` device prefix, so speakers display
   as configured (`Loa Gara` instead of `TTS Broadcast Loa Gara`). Display-only;
   entity ids, registry names and services are unchanged.
-
-## [1.2.1]
-### Fixed
+- README no longer lists the unimplemented `playback_mode` and
+  `audit_all_media_players` options; manual install no longer references the
+  gitignored `dist/tts_broadcast.zip`.
 - Minimum HA version declared as `2026.11.0` (verified against HA 2026.10.4 source and the 2026.11.0 tag; removed the unverified 2025.1 assumption).
 - Repairs issue "No Assist pipeline uses the TTS Broadcast agent" made non-intrusive: warning severity, not fixable, created only when voice phrases are configured, cleared automatically when a pipeline exists.
 - Audit `audit: true` no longer holds the announce lock while waiting for the audit window; added a regression test proving a second announcement completes while the first waits for its audit.
